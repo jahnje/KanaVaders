@@ -17,3 +17,5 @@ P = pause/resume.
 
 The inspiration for this came from here:
 http://learnjapanesepod.com/kana-invaders/
+
+Just download the jar file and run it: https://github.com/jahnje/KanaVaders/blob/master/kanavaders.jar
