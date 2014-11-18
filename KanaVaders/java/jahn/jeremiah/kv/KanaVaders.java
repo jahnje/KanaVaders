@@ -91,13 +91,14 @@ public class KanaVaders extends Application
             ImageIO.write(bufferedImage, "jpg", screenFile);
 
 
-            pos = random.nextInt(limit);
+           
             Group root = new Group();
             Scene scene = new Scene(root, 500, 500, Color.WHEAT);
             preferences = Preferences.userNodeForPackage(KanaVaders.class);
             limit = preferences.getInt("level", limit);
             required = preferences.getInt("required", required);
             lastImageDir = preferences.get("lastImageDir", lastImageDir);
+            pos = random.nextInt(limit);
             //textField.set
 
             text = new Text(Character.toString((char)(writingSystem.unicodeBase+pos)));
