@@ -3,6 +3,7 @@ package jahn.jeremiah.kv;
 import java.io.File;
 import java.util.Random;
 import java.util.Vector;
+import java.util.prefs.Preferences;
 
 import javafx.animation.Animation.Status;
 import javafx.animation.PathTransition;
@@ -51,8 +52,10 @@ public class KanaVaders extends Application
         pos = random.nextInt(limit);
         Group root = new Group();
         Scene scene = new Scene(root, 500, 500, Color.WHEAT);
+        Preferences preferences = Preferences.userNodeForPackage(KanaVaders.class);
+        limit = preferences.getInt("level", limit);
+        required = preferences.getInt("required", required);
         
-
         //textField.set
         
         text = new Text(Character.toString((char)(12353+pos)));
@@ -109,7 +112,7 @@ public class KanaVaders extends Application
         TextField textField = new TextField();
         textField.setLayoutY(450);
         status.setLayoutY(450);
-        status.setLayoutX(325);
+        status.setLayoutX(315);
         textField.setOnKeyTyped(e -> {
         	if(e.getCharacter().equals(" "))
         	{
@@ -136,7 +139,11 @@ public class KanaVaders extends Application
         		limit--;
         		status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
         		setCharList(charList);
-                e.consume();
+                e.consume();                
+                preferences.putInt("level", limit);
+                preferences.putInt("required", required);
+                try{ preferences.flush();} catch (Exception e1) {}
+				
         	}
         	else if(e.getCharacter().equals("P"))
         	{
@@ -156,6 +163,9 @@ public class KanaVaders extends Application
         		status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
         		setCharList(charList);
                 e.consume();
+                preferences.putInt("level", limit);
+                preferences.putInt("required", required);
+                try{ preferences.flush();} catch (Exception e1) {}
         	}
         	else if(e.getCharacter().equals("`"))
         	{
@@ -175,6 +185,9 @@ public class KanaVaders extends Application
                     Image imgTmp = new Image(getImageFile());
                     imgView.setImage(imgTmp);
                     setCharList(charList);
+                    preferences.putInt("level", limit);
+                    preferences.putInt("required", required);
+                    try{ preferences.flush();} catch (Exception e1) {}
                     
                 }
                 do
@@ -233,7 +246,7 @@ public class KanaVaders extends Application
         	cubicCurveTo1.setX(n2.intValue()-50);
         	cubicCurveTo2.setControlX2(n2.intValue()-50);
         	cubicCurveTo3.setX(n2.intValue()-100);        	
-        	status.setLayoutX(n2.intValue()-175);
+        	status.setLayoutX(n2.intValue()-185);
         	charList.setLayoutX(n2.intValue()-25);
             
         });
@@ -249,6 +262,10 @@ public class KanaVaders extends Application
     	StringBuffer buffer = new StringBuffer();
     	for(int index = 0; index < limit; index++)
     	{
+    		if(romanji[index].length() == 0)
+    		{
+    			continue;
+    		}
     		buffer.append("\n");
     		buffer.append(Character.toString((char)(12353+index)));
     	}
