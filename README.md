@@ -13,3 +13,7 @@ P = pause/resume.
 '-'/'=' = decrease/increase required correct. 
 '1' toggle fullscreen. 
 '2' toggle between hiragana and katakana. 
+
+
+The inspiration for this came from here:
+http://learnjapanesepod.com/kana-invaders/
