@@ -7,11 +7,17 @@ so that you can play at work or at. you can then point it to a folder of images 
 The game remebers where you left off, and will slowdown as you get to areas where you have problems. 
 
 '`' = load random image(s) from image dir/ return to safe-mode image only. 
+
 ','/'.' = decrease/increase difficulty. 
+
 esc = exit full screen. 
+
 P = pause/resume. 
+
 '-'/'=' = decrease/increase required correct. 
+
 '1' toggle fullscreen. 
+
 '2' toggle between hiragana and katakana. 
 
 
