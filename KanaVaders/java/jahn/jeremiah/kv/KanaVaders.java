@@ -41,9 +41,10 @@ import javax.imageio.ImageIO;
 public class KanaVaders extends Application
 {
     private enum WritingSystem
-    {       
+    {//       4e00 - 9faf
         HIRAGANA(83,12353),
-        KATAKANA(89,12449);
+        KATAKANA(89,12449),
+        KANJI(20911,19968);
         
         int limit = 0;
         int unicodeBase = 0;
@@ -388,7 +389,10 @@ public class KanaVaders extends Application
                 }
             }
             safetyFile = fileChooser.showOpenDialog(stage);
-            
+            if(safetyFile == null)
+            {
+                return KanaVaders.class.getResource("safe.jpg").toString();
+            }
         }
         File file = safetyFile.getParentFile();
         if(safetyFile.isDirectory())
