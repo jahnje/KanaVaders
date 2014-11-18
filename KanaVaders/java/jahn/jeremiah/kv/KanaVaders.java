@@ -10,6 +10,7 @@ import java.util.prefs.Preferences;
 
 import javafx.animation.Animation.Status;
 import javafx.animation.PathTransition;
+import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -139,10 +140,10 @@ public class KanaVaders extends Application
             pathTransition.setPath(path);
             pathTransition.setNode(text);
             //pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
-            //pathTransition.setCycleCount(Timeline.INDEFINITE);
+           
             //pathTransition.setAutoReverse(true);
-            pathTransition.setOnFinished(e -> {if (limit > 1) limit--; totalPoints=0;});
-
+            pathTransition.setOnFinished(e -> {if (limit > 1 && pathTransition.isAutoReverse() == false) limit--; totalPoints=0;});
+            
 
 
             Image img = new Image(getImageFile());
@@ -182,6 +183,21 @@ public class KanaVaders extends Application
                     {
                        stage.setFullScreen(true);
                        e.consume();
+                    }
+                    else if(e.getCharacter().equals("3"))
+                    {
+                        pathTransition.setAutoReverse(!pathTransition.isAutoReverse());
+                        if(pathTransition.isAutoReverse())
+                        {
+                            pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+                            pathTransition.setCycleCount(Timeline.INDEFINITE);
+                        }
+                        else
+                        {
+                            pathTransition.setOrientation(PathTransition.OrientationType.NONE);
+                            pathTransition.setCycleCount(1);
+                        }
+                        e.consume();
                     }
                     else if(e.getCharacter().equals("-"))
                     {
