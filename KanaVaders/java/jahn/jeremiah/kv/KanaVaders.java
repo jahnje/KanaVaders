@@ -13,6 +13,8 @@ import javafx.scene.Scene;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.MoveTo;
@@ -45,17 +47,20 @@ public class KanaVaders extends Application
     private Vector<Integer> wrongPoolVector = new Vector<Integer>();
 	private File safetyFile;
 	private Stage stage;
-    
+    private String lastImageDir = null;
+    private Preferences preferences;
     @Override
     public void start(Stage stage) {
         this.stage = stage;
+        stage.setFullScreenExitKeyCombination(new KeyCodeCombination(KeyCode.ESCAPE));
+        stage.setFullScreen(true);
         pos = random.nextInt(limit);
         Group root = new Group();
         Scene scene = new Scene(root, 500, 500, Color.WHEAT);
-        Preferences preferences = Preferences.userNodeForPackage(KanaVaders.class);
+        preferences = Preferences.userNodeForPackage(KanaVaders.class);
         limit = preferences.getInt("level", limit);
         required = preferences.getInt("required", required);
-        
+        lastImageDir = preferences.get("lastImageDir", lastImageDir);
         //textField.set
         
         text = new Text(Character.toString((char)(12353+pos)));
@@ -169,10 +174,12 @@ public class KanaVaders extends Application
         	}
         	else if(e.getCharacter().equals("`"))
         	{
-        		safe = safe ? false : true;
-        		 Image imgTmp = new Image(getImageFile());
-                 imgView.setImage(imgTmp);
+        		safe = safe ? false : true;        		
+        		pathTransition.pause();
+        		Image imgTmp = new Image(getImageFile());
+        		imgView.setImage(imgTmp);
                 e.consume();
+                pathTransition.play();
         	}
         	else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos]))
             {
@@ -254,7 +261,7 @@ public class KanaVaders extends Application
         stage.setTitle("Kana-Vaders");
        
         stage.setScene(scene);
-        pathTransition.play();
+        pathTransition.play();        
         stage.show();
     }
     private void setCharList(Text charList)
@@ -274,17 +281,42 @@ public class KanaVaders extends Application
 	}
 	private String getImageFile()
 	{
-		while(safetyFile == null)
-		{
-			FileChooser fileChooser = new FileChooser();
-			safetyFile = fileChooser.showOpenDialog(stage);
-		}
-		File file = safetyFile.getParentFile();
-		File[] fileList = file.listFiles();
+		
 		if(safe == true)
 		{
-			return "file://"+safetyFile.getAbsolutePath();
+			return KanaVaders.class.getResource("safe.jpg").toString();
 		}
+		while(safetyFile == null)
+        {
+		    
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Choose Image/Image Directory");
+            if(lastImageDir != null)
+            {
+                
+                File lastImageDirFile = new File(lastImageDir);
+                if (lastImageDirFile.isDirectory())
+                {
+                    fileChooser.setInitialDirectory(lastImageDirFile);
+                }
+                else
+                {
+                    fileChooser.setInitialDirectory(lastImageDirFile.getParentFile());
+                    fileChooser.setInitialFileName(lastImageDir);
+                }
+            }
+            safetyFile = fileChooser.showOpenDialog(stage);
+            
+        }
+        File file = safetyFile.getParentFile();
+        if(safetyFile.isDirectory())
+        {
+            file = safetyFile;
+        }        
+        preferences.put("lastImageDir", safetyFile.getAbsolutePath());
+        try{ preferences.flush();} catch (Exception e1) {}
+        
+        File[] fileList = file.listFiles();
 		return "file://"+fileList[random.nextInt(fileList.length)].getAbsolutePath();
 	}
 	/**
