@@ -180,7 +180,7 @@ public class KanaVaders extends Application
                 try
                 {
                    
-                    if(e.getCharacter().codePointAt(0) == 27) //consume escape key
+                    if(e.getCharacter() == null || e.getCharacter().length() == 0 || e.getCharacter().codePointAt(0) == 27) //consume escape key
                     {                        
                         e.consume();
                     }
