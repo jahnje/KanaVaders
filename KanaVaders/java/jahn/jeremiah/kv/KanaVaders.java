@@ -10,7 +10,6 @@ import java.util.prefs.Preferences;
 
 import javafx.animation.Animation.Status;
 import javafx.animation.PathTransition;
-import javafx.animation.Timeline;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
@@ -58,8 +57,9 @@ public class KanaVaders extends Application
             this.unicodeBase = unicodeBase;
         }
     }
+   
     private static final String[] romanji = new String[]{"A","","I","","U","","E","","O","","KA","GA","KI","GI","KU","GU","KE","GE","KO","GO","SA","ZA","SHI","ZI","SU","ZU","SE","ZE","SO","ZO","TA","DA","CHI","DI","TSU","","DU","TE","DE","TO","DO","NA","NI","NU","NE","NO","HA","BA","PA","HI","BI","PI","FU","BU","PU","HE","BE","PE","HO","BO","PO","MA","MI","MU","ME","MO","YA","YA","YU","YU","YO","YO","RA","RI","RU","RE","RO","WA","WA","WI","WE","WO","N","VU","KA","KE","VA","VI","VE","VO"};
-    
+    private static final int PIECES = 5;
     private WritingSystem writingSystem = WritingSystem.HIRAGANA;
     private Text text;
     private int pos = 0;
@@ -75,6 +75,11 @@ public class KanaVaders extends Application
     private Stage stage;
     private String lastImageDir = null;
     private Preferences preferences;
+    private Path path;
+    private boolean crazyMode = false;
+    private ImageView bombImageView;
+    private Image bombImage = new Image(KanaVaders.class.getResource("explosion.gif").toString());
+    private Image bombDoneImage = new Image(KanaVaders.class.getResource("explosion_done.gif").toString());
     @Override
     public void start(Stage stage) {
         try
@@ -119,34 +124,43 @@ public class KanaVaders extends Application
             //status.setScaleX(3);
             //status.setScaleY(3);
 
+            
+            
 
-            Path path = new Path();
-            path.getElements().add(new MoveTo(20,20));
-
-            CubicCurveTo cubicCurveTo1 = new CubicCurveTo(380, 0, 380, 120, 200, 120);
-            CubicCurveTo cubicCurveTo2 = new CubicCurveTo(0, 120, 0, 240, 380, 240);
-            CubicCurveTo cubicCurveTo3 = new CubicCurveTo(0, 240, 0, 480, 380, 500);
-            path.getElements().add(cubicCurveTo1);
-            path.getElements().add(cubicCurveTo2);
-            path.getElements().add(cubicCurveTo3);
+            path = new Path();
+            
+            
             PathTransition pathTransition = new PathTransition();
 
-            //        scene.heightProperty().addListener(new ChangeListener<Number>()
-            //		{
-            //
-            //			@Override
-            //			public void changed(ObservableValue<? extends Number> arg0, Number arg1,Number arg2)
-            //			{
-            //				
-            //			}
-            //		});
-            pathTransition.setDuration(Duration.millis(14000));
-            pathTransition.setPath(path);
-            pathTransition.setNode(text);
-            //pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
            
+            pathTransition.setDuration(Duration.millis(14000));
+            
+            pathTransition.setNode(text);
+            //pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);           
             //pathTransition.setAutoReverse(true);
-            pathTransition.setOnFinished(e -> {if (limit > 1 && pathTransition.isAutoReverse() == false) limit--; totalPoints=0;});
+            pathTransition.setOnFinished(e -> {
+                if (limit > 1 && pathTransition.isAutoReverse() == false)
+                    {                    
+                        limit--;
+                    }
+                    totalPoints=0;
+                    if(crazyMode)
+                    {
+                        
+                        if(bombImageView != null)
+                        {
+                            bombImageView.setImage(bombDoneImage);
+                        }
+                        bombImageView = new ImageView(bombImage);
+                        bombImageView.setFitHeight(75);
+                        bombImageView.setPreserveRatio(true);
+                        bombImageView.setSmooth(true);                   
+                        root.getChildren().add(bombImageView);
+                        bombImageView.setLayoutX(pathTransition.getNode().getBoundsInParent().getMinX());
+                        bombImageView.setLayoutY(pathTransition.getNode().getBoundsInParent().getMinY());
+                    }
+                    buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
+                });
             
 
 
@@ -161,10 +175,21 @@ public class KanaVaders extends Application
             textField.setLayoutY(450);
             status.setLayoutY(450);
             status.setLayoutX(315);
+            
             textField.setOnKeyTyped(e -> {
                 try
                 {
-                    if(e.getCharacter().equals(" "))
+                   
+                    if(e.getCharacter().codePointAt(0) == 27) //consume escape key
+                    {                        
+                        e.consume();
+                    }
+                    else if(pathTransition.getStatus() == Status.STOPPED)
+                    {
+                        pathTransition.play();
+                        e.consume();
+                    }
+                    else if(e.getCharacter().equals(" "))
                     {
                         Image imgTmp = new Image(getImageFile());
                         imgView.setImage(imgTmp);
@@ -187,24 +212,22 @@ public class KanaVaders extends Application
                     {
                        stage.setFullScreen(true);
                        e.consume();
-                    }
-                    else if(e.getCode() == KeyCode.ESCAPE)
-                    {                       
-                       e.consume();
-                    }
+                    }                    
                     else if(e.getCharacter().equals("3"))
                     {
-                        pathTransition.setAutoReverse(!pathTransition.isAutoReverse());
-                        if(pathTransition.isAutoReverse())
-                        {
-                            pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
-                            pathTransition.setCycleCount(Timeline.INDEFINITE);
-                        }
-                        else
-                        {
-                            pathTransition.setOrientation(PathTransition.OrientationType.NONE);
-                            pathTransition.setCycleCount(1);
-                        }
+                        crazyMode = !crazyMode;
+//                        pathTransition.setAutoReverse(!pathTransition.isAutoReverse());
+//                        if(pathTransition.isAutoReverse())
+//                        {
+//                            pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
+//                            pathTransition.setCycleCount(Timeline.INDEFINITE);
+//                        }
+//                        else
+//                        {
+//                            pathTransition.setOrientation(PathTransition.OrientationType.NONE);
+//                            pathTransition.getNode().setRotate(0);
+//                            pathTransition.setCycleCount(1);
+//                        }
                         e.consume();
                     }
                     else if(e.getCharacter().equals("-"))
@@ -219,6 +242,22 @@ public class KanaVaders extends Application
                         required++;
                         status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
                         setCharList(charList);
+                        e.consume();
+                    }
+                   
+                    else if(e.getCharacter().equals("]"))
+                    {                        
+                        if(pathTransition.getDuration().greaterThanOrEqualTo(Duration.millis(1000)))
+                        {
+                            pathTransition.setDuration(pathTransition.getDuration().subtract(Duration.millis(1000)));
+                        }
+                        pathTransition.playFromStart();
+                        e.consume();
+                    }
+                    else if(e.getCharacter().equals("["))
+                    {
+                        pathTransition.setDuration(pathTransition.getDuration().add(Duration.millis(1000)));
+                        pathTransition.playFromStart();
                         e.consume();
                     }
                     else if(e.getCharacter().equals(","))
@@ -269,6 +308,7 @@ public class KanaVaders extends Application
                     }
                     else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos]))
                     {
+                        buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
                         correct++;
                         totalPoints++;
                         if (limit < romanji.length && correct >= required && wrongPoolVector.size() == 0)
@@ -339,15 +379,13 @@ public class KanaVaders extends Application
             scene.heightProperty().addListener((c,n1,n2) -> {
                 pathTransition.setDuration(Duration.millis(n2.intValue()*10+10000));
                 textField.setLayoutY(n2.intValue()-50);
-                status.setLayoutY(n2.intValue()-50);
-                cubicCurveTo3.setY(n2.intValue()-100);        	
+                status.setLayoutY(n2.intValue()-50);                
+                buildPath(scene.widthProperty().intValue(), n2.intValue());
                 imgView.setFitHeight(n2.intValue());
             });
-            scene.widthProperty().addListener((c,n1,n2) -> {
-                cubicCurveTo1.setX(n2.intValue()-50);
-                cubicCurveTo2.setControlX2(n2.intValue()-50);
-                cubicCurveTo3.setX(n2.intValue()-100);        	
-                status.setLayoutX(n2.intValue()-185);
+            scene.widthProperty().addListener((c,n1,n2) -> {                
+                buildPath(n2.intValue(),scene.heightProperty().intValue());
+                status.setLayoutX(n2.intValue()-200);
                 charList.setLayoutX(n2.intValue()-25);
 
             });
@@ -355,6 +393,15 @@ public class KanaVaders extends Application
             stage.setTitle("Kana-Vaders");
 
             stage.setScene(scene);
+            if(stage.isFullScreen())
+            {
+                buildPath((int)Screen.getPrimary().getBounds().getWidth(), (int)Screen.getPrimary().getBounds().getHeight());
+            }
+            else
+            {
+                buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
+            }
+            pathTransition.setPath(path);
             pathTransition.play();        
             stage.show();
         }
@@ -430,6 +477,38 @@ public class KanaVaders extends Application
         File[] fileList = file.listFiles();
 		return fileList[random.nextInt(fileList.length)].toURI().toURL().toString();
 	}
+	
+	
+	private void buildPath(int width, int height)
+	{
+	    int startX = 20;
+	    int startY = 20;
+	    path.getElements().clear();
+	    path.getElements().add(new MoveTo(startX+(crazyMode ? random.nextInt(width) : 0),startY));
+	    int xSize = width/PIECES;
+	    int ySize = height/PIECES;
+	    for(int currentPiece = 0; currentPiece < PIECES; currentPiece++)
+	    {
+	        
+	        
+	        if(currentPiece == PIECES-1)
+	        {
+	            if(crazyMode == true)
+	            {
+	                if (width < 75)
+	                {
+	                    width = 76;
+	                }
+	            }
+	            startX = (crazyMode ? random.nextInt(width-75) : -75);
+	            xSize = (crazyMode ? 0 : xSize);    
+	            startY = -75;  
+	        }
+	        CubicCurveTo cubicCurveTo = new CubicCurveTo(random.nextInt(width), random.nextInt(height), random.nextInt(width), random.nextInt(height), startX+(xSize*(currentPiece+1)), startY+(ySize*(currentPiece+1)));
+	        path.getElements().add(cubicCurveTo);
+	    }
+	}
+	
 	/**
      * @param args
      */
