@@ -20,6 +20,11 @@ P = pause/resume.
 
 '2' toggle between hiragana and katakana. 
 
+'3' toggle crazy mode. Includes explosions and less predicitible paths
+
+'[' and ']' slow down and speed up the speed of the kana drop.
+
+'AnyKey' will restart drop after it's hit bottom.
 
 The inspiration for this came from here:
 http://learnjapanesepod.com/kana-invaders/
