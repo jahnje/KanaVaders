@@ -290,7 +290,7 @@ public class KanaVaders extends Application
                             {
                                 pos = random.nextInt(limit+wrongPoolVector.size());
                             }
-                            if(pos >= limit)
+                            if(pos >= limit || (correct > required && wrongPoolVector.size() > 0))
                             {
                                 pos = wrongPoolVector.remove(0);
                             }
