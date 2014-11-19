@@ -99,9 +99,13 @@ public class KanaVaders extends Application
             limit = preferences.getInt("level", limit);
             required = preferences.getInt("required", required);
             lastImageDir = preferences.get("lastImageDir", lastImageDir);
-            pos = random.nextInt(limit);
+           
             //textField.set
-
+            do
+            {
+                pos = random.nextInt(limit);
+            } while(romanji[pos].length() == 0);
+            
             text = new Text(Character.toString((char)(writingSystem.unicodeBase+pos)));
             text.setScaleX(3);
             text.setScaleY(3);
@@ -182,6 +186,10 @@ public class KanaVaders extends Application
                     else if(e.getCharacter().equals("1"))
                     {
                        stage.setFullScreen(true);
+                       e.consume();
+                    }
+                    else if(e.getCode() == KeyCode.ESCAPE)
+                    {                       
                        e.consume();
                     }
                     else if(e.getCharacter().equals("3"))
