@@ -80,6 +80,7 @@ public class KanaVaders extends Application
     private ImageView bombImageView;
     private Image bombImage = new Image(KanaVaders.class.getResource("explosion.gif").toString());
     private Image bombDoneImage = new Image(KanaVaders.class.getResource("explosion_done.gif").toString());
+    private Vector<ImageView> bombImageViewVector = new Vector<ImageView>();
     @Override
     public void start(Stage stage) {
         try
@@ -156,6 +157,7 @@ public class KanaVaders extends Application
                         bombImageView.setPreserveRatio(true);
                         bombImageView.setSmooth(true);                   
                         root.getChildren().add(bombImageView);
+                        bombImageViewVector.add(bombImageView);
                         bombImageView.setLayoutX(pathTransition.getNode().getBoundsInParent().getMinX());
                         bombImageView.setLayoutY(pathTransition.getNode().getBoundsInParent().getMinY());
                     }
@@ -216,6 +218,12 @@ public class KanaVaders extends Application
                     else if(e.getCharacter().equals("3"))
                     {
                         crazyMode = !crazyMode;
+                        if(crazyMode == false)
+                        {
+                            root.getChildren().removeAll(bombImageViewVector);
+                            bombImageViewVector.clear();
+                            bombImageView = null;
+                        }
 //                        pathTransition.setAutoReverse(!pathTransition.isAutoReverse());
 //                        if(pathTransition.isAutoReverse())
 //                        {
