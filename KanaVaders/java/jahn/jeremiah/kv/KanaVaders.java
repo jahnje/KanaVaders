@@ -86,7 +86,7 @@ public class KanaVaders extends Application
         {
             this.stage = stage;
             stage.setFullScreenExitKeyCombination(new KeyCodeCombination(KeyCode.ESCAPE));
-            stage.setFullScreen(true);
+            //stage.setFullScreen(true);
 
 
             ;
