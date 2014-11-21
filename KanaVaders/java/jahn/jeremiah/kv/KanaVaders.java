@@ -11,14 +11,19 @@ import java.util.prefs.Preferences;
 import javafx.animation.Animation.Status;
 import javafx.animation.PathTransition;
 import javafx.application.Application;
+import javafx.event.EventHandler;
+import javafx.event.EventType;
+import javafx.geometry.Orientation;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.MoveTo;
@@ -89,6 +94,7 @@ public class KanaVaders extends Application
     private ImageView imgView;
     private TextField textField;
     private PathTransition pathTransition;
+    private Slider levelSlider;
     @Override
     public void start(Stage stage) {
         try
@@ -104,11 +110,14 @@ public class KanaVaders extends Application
             ImageIO.write(bufferedImage, "jpg", screenFile);
 
 
+            GameKeyEventHandler gameKeyEventHandler = new GameKeyEventHandler();
            
-            Group root = new Group();
+            root = new Group();
+            root.addEventHandler(KeyEvent.KEY_TYPED, gameKeyEventHandler);
             scene = new Scene(root, 500, 500, Color.WHEAT);
             preferences = Preferences.userNodeForPackage(KanaVaders.class);
             level = preferences.getInt("level", level);
+            if(level <= 0) level = 1;
             required = preferences.getInt("required", required);
             lastImageDir = preferences.get("lastImageDir", lastImageDir);
            
@@ -129,6 +138,34 @@ public class KanaVaders extends Application
             charList.setLayoutX(475);
             charList.setLayoutY(20);
 
+            levelSlider = new Slider();
+            levelSlider.setRotate(180);
+            levelSlider.setMin(1);
+            levelSlider.setMax(writingSystem.limit);
+            levelSlider.setValue(level);
+            levelSlider.setLayoutX(490);
+            levelSlider.setLayoutY(20);
+            levelSlider.setMinHeight(480);
+            levelSlider.setOrientation(Orientation.VERTICAL);
+            levelSlider.setFocusTraversable(false);
+            levelSlider.valueProperty().addListener((observableValue,oldValue,newValue) -> {
+                    if(oldValue.intValue() < newValue.intValue())
+                    {
+                        level = newValue.intValue()-1;
+                        increaseLevel();                        
+                    }
+                    else
+                    {
+                        level = newValue.intValue()+1;
+                        decreaseLevel();                        
+                    }
+                    //if(levelSlider.isValueChanging() == false) //give text field focus when done
+                    {
+                        textField.requestFocus();
+                    }
+            });
+               
+            
             //status stuff
             status = new Text();            
             progressBar = new ProgressBar();
@@ -183,141 +220,7 @@ public class KanaVaders extends Application
             status.setLayoutX(315);
             progressBar.setLayoutX(315);
             progressBar.setLayoutY(480);
-            textField.setOnKeyTyped(e -> {
-                try
-                {
-                   
-                    if(e.getCharacter() == null || e.getCharacter().length() == 0 || e.getCharacter().codePointAt(0) == 27) //consume escape key
-                    {                        
-                        e.consume();
-                    }
-                    else if(pathTransition.getStatus() == Status.STOPPED) //resume on AnyKey
-                    {
-                        pathTransition.play();
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals(" ")) //change image
-                    {
-                        Image imgTmp = new Image(getImageFile());
-                        imgView.setImage(imgTmp);
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals("2")) //tottlge writing system
-                    {
-                      if(writingSystem == WritingSystem.HIRAGANA)
-                      {
-                          writingSystem = WritingSystem.KATAKANA;
-                      }
-                      else
-                      {
-                          writingSystem = WritingSystem.HIRAGANA;
-                      }
-                      setCharList(charList);
-                      e.consume();
-                    }
-                    else if(e.getCharacter().equals("1")) //full screen 
-                    {
-                       stage.setFullScreen(true);
-                       e.consume();
-                    }                    
-                    else if(e.getCharacter().equals("3")) //arcade mode
-                    {
-                        crazyMode = !crazyMode;
-                        if(crazyMode == false)
-                        {
-                            root.getChildren().removeAll(bombImageViewVector);
-                            bombImageViewVector.clear();
-                            bombImageView = null;
-                        }
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals("-")) //decrease required
-                    {
-                        required--;
-                        setStatusText();                        
-                        setCharList(charList);
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals("=")) //increase required
-                    {
-                        required++;
-                        setStatusText();
-                        setCharList(charList);
-                        e.consume();
-                    }
-                   
-                    else if(e.getCharacter().equals("]")) //increase speed
-                    {                        
-                        if(pathTransition.getDuration().greaterThanOrEqualTo(Duration.millis(1000)))
-                        {
-                            pathTransition.setDuration(pathTransition.getDuration().subtract(Duration.millis(1000)));
-                        }
-                        pathTransition.playFromStart();
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals("[")) //decrease speed
-                    {
-                        pathTransition.setDuration(pathTransition.getDuration().add(Duration.millis(1000)));
-                        pathTransition.playFromStart();
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals(",")) //decrease level
-                    {
-                        decreaseLevel();
-                        e.consume();
-
-                    }
-                    else if(e.getCharacter().equals("."))
-                    {
-                        increaseLevel();
-                        e.consume();
-                    }
-                    else if(e.getCharacter().equals("P")) //pause
-                    {
-                        if(pathTransition.getStatus() == Status.PAUSED)
-                        {
-                            pathTransition.play();
-                        }
-                        else
-                        {
-                            pathTransition.pause();
-                        }
-                        e.consume();
-                    }
-                    
-                    else if(e.getCharacter().equals("`")) //toggle safe mode
-                    {
-                        safe = safe ? false : true;        		
-                        pathTransition.pause();
-                        Image imgTmp = new Image(getImageFile());
-                        imgView.setImage(imgTmp);
-                        e.consume();
-                        pathTransition.play();
-                    }
-                    else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
-                    {
-                        success();
-                        e.consume();
-                    }
-                    else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
-                    {
-                        //do nothing
-                    }
-                    else //fail
-                    {                
-                        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos))+" ("+romanji[pos]+")");
-                        e.consume();
-                        //correct--;
-                        totalPoints--;
-                        setStatusText();
-                        wrongPoolVector.add(pos);
-                        required++;
-                    }
-                } catch (Exception exception)
-                {
-                    exception.printStackTrace();
-                }
-            });
+            textField.setOnKeyTyped(gameKeyEventHandler);
             //END KEYBOARD STUFF
             
             //BUILD SCENE
@@ -325,6 +228,7 @@ public class KanaVaders extends Application
             root.getChildren().add(text);
             root.getChildren().add(textField);
             root.getChildren().add(charList);
+            root.getChildren().add(levelSlider);
             root.getChildren().add(status);
             root.getChildren().add(progressBar);
 
@@ -335,6 +239,7 @@ public class KanaVaders extends Application
                 pathTransition.setDuration(Duration.millis(n2.intValue()*10+10000));
                 textField.setLayoutY(n2.intValue()-50);
                 status.setLayoutY(n2.intValue()-50);
+                levelSlider.setMinHeight(n2.intValue()-50);
                 progressBar.setLayoutY(n2.intValue()-30);
                 buildPath(scene.widthProperty().intValue(), n2.intValue());
                 imgView.setFitHeight(n2.intValue());
@@ -347,7 +252,9 @@ public class KanaVaders extends Application
                 status.setLayoutX(n2.intValue()-(status.getBoundsInParent().getWidth()+20));                
                 progressBar.setLayoutX(n2.intValue()-(status.getBoundsInParent().getWidth()+20));
                 progressBar.setMinWidth(n2.intValue()-progressBar.getLayoutX()-10);                
-                charList.setLayoutX(n2.intValue()-25);
+                charList.setLayoutX(n2.intValue()-30);
+                levelSlider.setLayoutX(n2.intValue()-15);                
+                
                 pathTransition.playFromStart();
             });
             //END RESIZE CODE 
@@ -445,7 +352,7 @@ public class KanaVaders extends Application
         }
         setStatusText();
         setCharList(charList);
-       
+        levelSlider.setValue(level);
         preferences.putInt("level", level);
         preferences.putInt("required", required);
         try{ preferences.flush();} catch (Exception e1) {}
@@ -565,6 +472,151 @@ public class KanaVaders extends Application
         launch(args);
     }
 
+    private class GameKeyEventHandler implements EventHandler<KeyEvent>
+    {
+        
+        @Override
+        public void handle(KeyEvent e)
+        {
+            try
+            {
+                if(textField.isFocused() == false)
+                {
+                    textField.requestFocus();
+                }
+                
+                if(e.getCharacter() == null || e.getCharacter().length() == 0 || e.getCharacter().codePointAt(0) == 27) //consume escape key
+                {                        
+                    e.consume();
+                }
+                else if(pathTransition.getStatus() == Status.STOPPED) //resume on AnyKey
+                {
+                    pathTransition.play();
+                    e.consume();
+                }
+                else if(e.getCharacter().equals(" ")) //change image
+                {
+                    Image imgTmp = new Image(getImageFile());
+                    imgView.setImage(imgTmp);
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("2")) //tottlge writing system
+                {
+                  if(writingSystem == WritingSystem.HIRAGANA)
+                  {
+                      writingSystem = WritingSystem.KATAKANA;
+                  }
+                  else
+                  {
+                      writingSystem = WritingSystem.HIRAGANA;
+                  }
+                  setCharList(charList);
+                  e.consume();
+                }
+                else if(e.getCharacter().equals("1")) //full screen 
+                {
+                   stage.setFullScreen(true);
+                   e.consume();
+                }                    
+                else if(e.getCharacter().equals("3")) //arcade mode
+                {
+                    crazyMode = !crazyMode;
+                    if(crazyMode == false)
+                    {
+                        root.getChildren().removeAll(bombImageViewVector);
+                        bombImageViewVector.clear();
+                        bombImageView = null;
+                    }
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("-")) //decrease required
+                {
+                    required--;
+                    setStatusText();                        
+                    setCharList(charList);
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("=")) //increase required
+                {
+                    required++;
+                    setStatusText();
+                    setCharList(charList);
+                    e.consume();
+                }
+               
+                else if(e.getCharacter().equals("]")) //increase speed
+                {                        
+                    if(pathTransition.getDuration().greaterThanOrEqualTo(Duration.millis(1000)))
+                    {
+                        pathTransition.setDuration(pathTransition.getDuration().subtract(Duration.millis(1000)));
+                    }
+                    pathTransition.playFromStart();
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("[")) //decrease speed
+                {
+                    pathTransition.setDuration(pathTransition.getDuration().add(Duration.millis(1000)));
+                    pathTransition.playFromStart();
+                    e.consume();
+                }
+                else if(e.getCharacter().equals(",")) //decrease level
+                {
+                    decreaseLevel();
+                    e.consume();
 
+                }
+                else if(e.getCharacter().equals("."))
+                {
+                    increaseLevel();
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("P")) //pause
+                {
+                    if(pathTransition.getStatus() == Status.PAUSED)
+                    {
+                        pathTransition.play();
+                    }
+                    else
+                    {
+                        pathTransition.pause();
+                    }
+                    e.consume();
+                }
+                
+                else if(e.getCharacter().equals("`")) //toggle safe mode
+                {
+                    safe = safe ? false : true;             
+                    pathTransition.pause();
+                    Image imgTmp = new Image(getImageFile());
+                    imgView.setImage(imgTmp);
+                    e.consume();
+                    pathTransition.play();
+                }
+                else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
+                {
+                    success();
+                    e.consume();
+                }
+                else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
+                {
+                    //do nothing
+                }
+                else //fail
+                {                
+                    text.setText(Character.toString((char)(writingSystem.unicodeBase+pos))+" ("+romanji[pos]+")");
+                    e.consume();
+                    //correct--;
+                    totalPoints--;
+                    setStatusText();
+                    wrongPoolVector.add(pos);
+                    required++;
+                }
+            } catch (Exception exception)
+            {
+                exception.printStackTrace();
+            }
+        }
+    };
+    private Group root;
     
 }
