@@ -64,7 +64,7 @@ public class KanaVaders extends Application
     private WritingSystem writingSystem = WritingSystem.HIRAGANA;
     private Text text;
     private int pos = 0;
-    private int limit = 1;
+    private int level = 1;
     private int correct = 0;
     private int totalPoints = 0;
     private Random random = new Random();
@@ -85,6 +85,10 @@ public class KanaVaders extends Application
     private Text status;
     private Scene scene;
     private ProgressBar progressBar;
+    private Text charList;
+    private ImageView imgView;
+    private TextField textField;
+    private PathTransition pathTransition;
     @Override
     public void start(Stage stage) {
         try
@@ -104,21 +108,23 @@ public class KanaVaders extends Application
             Group root = new Group();
             scene = new Scene(root, 500, 500, Color.WHEAT);
             preferences = Preferences.userNodeForPackage(KanaVaders.class);
-            limit = preferences.getInt("level", limit);
+            level = preferences.getInt("level", level);
             required = preferences.getInt("required", required);
             lastImageDir = preferences.get("lastImageDir", lastImageDir);
            
             //textField.set
             do
             {
-                pos = random.nextInt(limit);
+                pos = random.nextInt(level);
             } while(romanji[pos].length() == 0);
             
             text = new Text(Character.toString((char)(writingSystem.unicodeBase+pos)));
             text.setScaleX(3);
             text.setScaleY(3);
 
-            Text charList = new Text("");
+            
+            
+            charList = new Text("");
             setCharList(charList);
             charList.setLayoutX(475);
             charList.setLayoutY(20);
@@ -130,20 +136,15 @@ public class KanaVaders extends Application
             setStatusText();
             //END status stuff
             
-            
+            //START PATH AND EXPLOSION STUFF
             path = new Path();
-            
-            
-            PathTransition pathTransition = new PathTransition();
-
-           
+            pathTransition = new PathTransition();
             pathTransition.setDuration(Duration.millis(14000));
-            
             pathTransition.setNode(text);            
             pathTransition.setOnFinished(e -> {
-                if (limit > 1 && pathTransition.isAutoReverse() == false)
+                if (level > 1 && pathTransition.isAutoReverse() == false)
                     {                    
-                        limit--;
+                        level--;
                     }
                     totalPoints=0;
                     if(crazyMode)
@@ -167,14 +168,16 @@ public class KanaVaders extends Application
             
 
 
+            //LOAD IMAGE STUFF
             Image img = new Image(getImageFile());
-            ImageView imgView = new ImageView(img);
+            imgView = new ImageView(img);
             imgView.setFitHeight(500);
             imgView.setPreserveRatio(true);
             imgView.setSmooth(true);
             imgView.setCache(true);
 
-            TextField textField = new TextField();
+            
+            textField = new TextField();
             textField.setLayoutY(450);
             status.setLayoutY(450);
             status.setLayoutX(315);
@@ -188,18 +191,18 @@ public class KanaVaders extends Application
                     {                        
                         e.consume();
                     }
-                    else if(pathTransition.getStatus() == Status.STOPPED)
+                    else if(pathTransition.getStatus() == Status.STOPPED) //resume on AnyKey
                     {
                         pathTransition.play();
                         e.consume();
                     }
-                    else if(e.getCharacter().equals(" "))
+                    else if(e.getCharacter().equals(" ")) //change image
                     {
                         Image imgTmp = new Image(getImageFile());
                         imgView.setImage(imgTmp);
                         e.consume();
                     }
-                    else if(e.getCharacter().equals("2"))
+                    else if(e.getCharacter().equals("2")) //tottlge writing system
                     {
                       if(writingSystem == WritingSystem.HIRAGANA)
                       {
@@ -212,12 +215,12 @@ public class KanaVaders extends Application
                       setCharList(charList);
                       e.consume();
                     }
-                    else if(e.getCharacter().equals("1"))
+                    else if(e.getCharacter().equals("1")) //full screen 
                     {
                        stage.setFullScreen(true);
                        e.consume();
                     }                    
-                    else if(e.getCharacter().equals("3"))
+                    else if(e.getCharacter().equals("3")) //arcade mode
                     {
                         crazyMode = !crazyMode;
                         if(crazyMode == false)
@@ -228,14 +231,14 @@ public class KanaVaders extends Application
                         }
                         e.consume();
                     }
-                    else if(e.getCharacter().equals("-"))
+                    else if(e.getCharacter().equals("-")) //decrease required
                     {
                         required--;
                         setStatusText();                        
                         setCharList(charList);
                         e.consume();
                     }
-                    else if(e.getCharacter().equals("="))
+                    else if(e.getCharacter().equals("=")) //increase required
                     {
                         required++;
                         setStatusText();
@@ -243,7 +246,7 @@ public class KanaVaders extends Application
                         e.consume();
                     }
                    
-                    else if(e.getCharacter().equals("]"))
+                    else if(e.getCharacter().equals("]")) //increase speed
                     {                        
                         if(pathTransition.getDuration().greaterThanOrEqualTo(Duration.millis(1000)))
                         {
@@ -252,24 +255,24 @@ public class KanaVaders extends Application
                         pathTransition.playFromStart();
                         e.consume();
                     }
-                    else if(e.getCharacter().equals("["))
+                    else if(e.getCharacter().equals("[")) //decrease speed
                     {
                         pathTransition.setDuration(pathTransition.getDuration().add(Duration.millis(1000)));
                         pathTransition.playFromStart();
                         e.consume();
                     }
-                    else if(e.getCharacter().equals(","))
+                    else if(e.getCharacter().equals(",")) //decrease level
                     {
-                        limit--;
-                        setStatusText();
-                        setCharList(charList);
-                        e.consume();                
-                        preferences.putInt("level", limit);
-                        preferences.putInt("required", required);
-                        try{ preferences.flush();} catch (Exception e1) {}
+                        decreaseLevel();
+                        e.consume();
 
                     }
-                    else if(e.getCharacter().equals("P"))
+                    else if(e.getCharacter().equals("."))
+                    {
+                        increaseLevel();
+                        e.consume();
+                    }
+                    else if(e.getCharacter().equals("P")) //pause
                     {
                         if(pathTransition.getStatus() == Status.PAUSED)
                         {
@@ -281,21 +284,8 @@ public class KanaVaders extends Application
                         }
                         e.consume();
                     }
-                    else if(e.getCharacter().equals("."))
-                    {
-                        limit++;
-                        if(limit > writingSystem.limit)
-                        {
-                            limit--;
-                        }
-                        setStatusText();
-                        setCharList(charList);
-                        e.consume();
-                        preferences.putInt("level", limit);
-                        preferences.putInt("required", required);
-                        try{ preferences.flush();} catch (Exception e1) {}
-                    }
-                    else if(e.getCharacter().equals("`"))
+                    
+                    else if(e.getCharacter().equals("`")) //toggle safe mode
                     {
                         safe = safe ? false : true;        		
                         pathTransition.pause();
@@ -304,49 +294,10 @@ public class KanaVaders extends Application
                         e.consume();
                         pathTransition.play();
                     }
-                    else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos]))
+                    else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
                     {
-                        buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
-                        correct++;
-                        totalPoints++;
-                        if (limit < romanji.length && correct >= required && wrongPoolVector.size() == 0)
-                        {
-                            correct = -1;
-                            limit++;
-                            if(limit > writingSystem.limit)
-                            {
-                                limit--;
-                            }
-                            Image imgTmp = new Image(getImageFile());
-                            imgView.setImage(imgTmp);
-                            setCharList(charList);
-                            preferences.putInt("level", limit);
-                            preferences.putInt("required", required);
-                            try{ preferences.flush();} catch (Exception e1) {}
-
-                        }
-                        do
-                        {
-                            if(correct == -1) //when uping the level, always use our new letter.
-                            {
-                                pos = limit-1;
-                                correct = 0;
-                            }
-                            else
-                            {
-                                pos = random.nextInt(limit+wrongPoolVector.size());
-                            }
-                            if(pos >= limit || (correct > required && wrongPoolVector.size() > 0))
-                            {
-                                pos = wrongPoolVector.remove(0);
-                            }
-                        } while(romanji[pos].length() == 0);
-
-                        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));
-                        textField.clear();
+                        success();
                         e.consume();
-                        pathTransition.playFromStart();
-                        setStatusText();
                     }
                     else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
                     {
@@ -366,8 +317,10 @@ public class KanaVaders extends Application
                 {
                     exception.printStackTrace();
                 }
-            }
-                    );
+            });
+            //END KEYBOARD STUFF
+            
+            //BUILD SCENE
             root.getChildren().add(imgView);
             root.getChildren().add(text);
             root.getChildren().add(textField);
@@ -375,6 +328,9 @@ public class KanaVaders extends Application
             root.getChildren().add(status);
             root.getChildren().add(progressBar);
 
+            
+            //RESIZE EVENT PROCESSING
+            //height
             scene.heightProperty().addListener((c,n1,n2) -> {
                 pathTransition.setDuration(Duration.millis(n2.intValue()*10+10000));
                 textField.setLayoutY(n2.intValue()-50);
@@ -384,6 +340,8 @@ public class KanaVaders extends Application
                 imgView.setFitHeight(n2.intValue());
                 pathTransition.playFromStart();
             });
+            
+            //width
             scene.widthProperty().addListener((c,n1,n2) -> {                
                 buildPath(n2.intValue(),scene.heightProperty().intValue());
                 status.setLayoutX(n2.intValue()-(status.getBoundsInParent().getWidth()+20));                
@@ -392,10 +350,12 @@ public class KanaVaders extends Application
                 charList.setLayoutX(n2.intValue()-25);
                 pathTransition.playFromStart();
             });
-
+            //END RESIZE CODE 
+            
+            //INITIAL STARTUP STUFF
             stage.setTitle("Kana-Vaders");
-
             stage.setScene(scene);
+            
             if(stage.isFullScreen())
             {
                 buildPath((int)Screen.getPrimary().getBounds().getWidth(), (int)Screen.getPrimary().getBounds().getHeight());
@@ -414,10 +374,87 @@ public class KanaVaders extends Application
             e2.printStackTrace();
         }   
     }
+    /**
+     * 
+     */
+    private void success() throws Exception
+    {
+        buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
+        correct++;
+        totalPoints++;
+        if (level < romanji.length && correct >= required && wrongPoolVector.size() == 0)
+        {
+            correct = -1;
+            level++;
+            if(level > writingSystem.limit)
+            {
+                level--;
+            }
+            Image imgTmp = new Image(getImageFile());
+            imgView.setImage(imgTmp);
+            setCharList(charList);
+            preferences.putInt("level", level);
+            preferences.putInt("required", required);
+            try{ preferences.flush();} catch (Exception e1) {}
+
+        }
+        do
+        {
+            if(correct == -1) //when uping the level, always use our new letter.
+            {
+                pos = level-1;
+                correct = 0;
+            }
+            else
+            {
+                pos = random.nextInt(level+wrongPoolVector.size());
+            }
+            if(pos >= level || (correct > required && wrongPoolVector.size() > 0))
+            {
+                pos = wrongPoolVector.remove(0);
+            }
+        } while(romanji[pos].length() == 0);
+
+        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));
+        textField.clear();        
+        pathTransition.playFromStart();
+        setStatusText();
+    }
+    /**
+     * 
+     */
+    private void decreaseLevel()
+    {
+        level--;
+        setStatusText();
+        setCharList(charList);          
+        preferences.putInt("level", level);
+        preferences.putInt("required", required);
+        try{ preferences.flush();} catch (Exception e1) {}
+        
+    }
+    /**
+     * 
+     */
+    private void increaseLevel()
+    {
+        level++;
+        if(level > writingSystem.limit)
+        {
+            level--;
+        }
+        setStatusText();
+        setCharList(charList);
+       
+        preferences.putInt("level", level);
+        preferences.putInt("required", required);
+        try{ preferences.flush();} catch (Exception e1) {}
+        
+    }
     private void setCharList(Text charList)
 	{
     	StringBuffer buffer = new StringBuffer();
-    	for(int index = 0; index < limit; index++)
+    	for(int index = 0; index < level; index++)
     	{
     		if(romanji[index].length() == 0)
     		{
@@ -514,7 +551,7 @@ public class KanaVaders extends Application
 	
 	private void setStatusText()
 	{
-	    status.setText(correct+"/"+(required+wrongPoolVector.size())+" Level="+limit+"\nPoints = "+totalPoints);
+	    status.setText(correct+"/"+(required+wrongPoolVector.size())+" Level="+level+"\nPoints = "+totalPoints);
 	    status.setLayoutX(scene.widthProperty().intValue()-(status.getBoundsInParent().getWidth()+20));
 	    progressBar.setProgress((double)correct/(double)(required+wrongPoolVector.size()));
 	}
