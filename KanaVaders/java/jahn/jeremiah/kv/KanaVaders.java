@@ -13,6 +13,7 @@ import javafx.animation.PathTransition;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
@@ -81,6 +82,9 @@ public class KanaVaders extends Application
     private Image bombImage = new Image(KanaVaders.class.getResource("explosion.gif").toString());
     private Image bombDoneImage = new Image(KanaVaders.class.getResource("explosion_done.gif").toString());
     private Vector<ImageView> bombImageViewVector = new Vector<ImageView>();
+    private Text status;
+    private Scene scene;
+    private ProgressBar progressBar;
     @Override
     public void start(Stage stage) {
         try
@@ -88,9 +92,7 @@ public class KanaVaders extends Application
             this.stage = stage;
             stage.setFullScreenExitKeyCombination(new KeyCodeCombination(KeyCode.ESCAPE));
             //stage.setFullScreen(true);
-
-
-            ;
+            
             Rectangle rectangle = new Rectangle(0, 0, (int)Screen.getPrimary().getBounds().getWidth(), (int)Screen.getPrimary().getBounds().getHeight());
             Robot robot = new Robot();
             BufferedImage bufferedImage = robot.createScreenCapture(rectangle);
@@ -100,7 +102,7 @@ public class KanaVaders extends Application
 
            
             Group root = new Group();
-            Scene scene = new Scene(root, 500, 500, Color.WHEAT);
+            scene = new Scene(root, 500, 500, Color.WHEAT);
             preferences = Preferences.userNodeForPackage(KanaVaders.class);
             limit = preferences.getInt("level", limit);
             required = preferences.getInt("required", required);
@@ -121,13 +123,14 @@ public class KanaVaders extends Application
             charList.setLayoutX(475);
             charList.setLayoutY(20);
 
-            Text status = new Text("Status:");
-            //status.setScaleX(3);
-            //status.setScaleY(3);
-
+            //status stuff
+            status = new Text();            
+            progressBar = new ProgressBar();
+            progressBar.setProgress(0);
+            setStatusText();
+            //END status stuff
             
             
-
             path = new Path();
             
             
@@ -136,9 +139,7 @@ public class KanaVaders extends Application
            
             pathTransition.setDuration(Duration.millis(14000));
             
-            pathTransition.setNode(text);
-            //pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);           
-            //pathTransition.setAutoReverse(true);
+            pathTransition.setNode(text);            
             pathTransition.setOnFinished(e -> {
                 if (limit > 1 && pathTransition.isAutoReverse() == false)
                     {                    
@@ -177,7 +178,8 @@ public class KanaVaders extends Application
             textField.setLayoutY(450);
             status.setLayoutY(450);
             status.setLayoutX(315);
-            
+            progressBar.setLayoutX(315);
+            progressBar.setLayoutY(480);
             textField.setOnKeyTyped(e -> {
                 try
                 {
@@ -224,31 +226,19 @@ public class KanaVaders extends Application
                             bombImageViewVector.clear();
                             bombImageView = null;
                         }
-//                        pathTransition.setAutoReverse(!pathTransition.isAutoReverse());
-//                        if(pathTransition.isAutoReverse())
-//                        {
-//                            pathTransition.setOrientation(PathTransition.OrientationType.ORTHOGONAL_TO_TANGENT);
-//                            pathTransition.setCycleCount(Timeline.INDEFINITE);
-//                        }
-//                        else
-//                        {
-//                            pathTransition.setOrientation(PathTransition.OrientationType.NONE);
-//                            pathTransition.getNode().setRotate(0);
-//                            pathTransition.setCycleCount(1);
-//                        }
                         e.consume();
                     }
                     else if(e.getCharacter().equals("-"))
                     {
                         required--;
-                        status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
+                        setStatusText();                        
                         setCharList(charList);
                         e.consume();
                     }
                     else if(e.getCharacter().equals("="))
                     {
                         required++;
-                        status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
+                        setStatusText();
                         setCharList(charList);
                         e.consume();
                     }
@@ -271,7 +261,7 @@ public class KanaVaders extends Application
                     else if(e.getCharacter().equals(","))
                     {
                         limit--;
-                        status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
+                        setStatusText();
                         setCharList(charList);
                         e.consume();                
                         preferences.putInt("level", limit);
@@ -298,7 +288,7 @@ public class KanaVaders extends Application
                         {
                             limit--;
                         }
-                        status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
+                        setStatusText();
                         setCharList(charList);
                         e.consume();
                         preferences.putInt("level", limit);
@@ -356,7 +346,7 @@ public class KanaVaders extends Application
                         textField.clear();
                         e.consume();
                         pathTransition.playFromStart();
-                        status.setText("Status: cor = "+correct+"/"+required+"/"+wrongPoolVector.size()+" level="+limit+"\n Points = "+totalPoints);
+                        setStatusText();
                     }
                     else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
                     {
@@ -366,9 +356,9 @@ public class KanaVaders extends Application
                     {                
                         text.setText(Character.toString((char)(writingSystem.unicodeBase+pos))+" ("+romanji[pos]+")");
                         e.consume();
-                        correct--;
+                        //correct--;
                         totalPoints--;
-                        status.setText("Status: cor = "+correct+"/"+required+" level="+limit+"\n Points = "+totalPoints);
+                        setStatusText();
                         wrongPoolVector.add(pos);
                         required++;
                     }
@@ -383,19 +373,24 @@ public class KanaVaders extends Application
             root.getChildren().add(textField);
             root.getChildren().add(charList);
             root.getChildren().add(status);
+            root.getChildren().add(progressBar);
 
             scene.heightProperty().addListener((c,n1,n2) -> {
                 pathTransition.setDuration(Duration.millis(n2.intValue()*10+10000));
                 textField.setLayoutY(n2.intValue()-50);
-                status.setLayoutY(n2.intValue()-50);                
+                status.setLayoutY(n2.intValue()-50);
+                progressBar.setLayoutY(n2.intValue()-30);
                 buildPath(scene.widthProperty().intValue(), n2.intValue());
                 imgView.setFitHeight(n2.intValue());
+                pathTransition.playFromStart();
             });
             scene.widthProperty().addListener((c,n1,n2) -> {                
                 buildPath(n2.intValue(),scene.heightProperty().intValue());
-                status.setLayoutX(n2.intValue()-200);
+                status.setLayoutX(n2.intValue()-(status.getBoundsInParent().getWidth()+20));                
+                progressBar.setLayoutX(n2.intValue()-(status.getBoundsInParent().getWidth()+20));
+                progressBar.setMinWidth(n2.intValue()-progressBar.getLayoutX()-10);                
                 charList.setLayoutX(n2.intValue()-25);
-
+                pathTransition.playFromStart();
             });
 
             stage.setTitle("Kana-Vaders");
@@ -515,6 +510,13 @@ public class KanaVaders extends Application
 	        CubicCurveTo cubicCurveTo = new CubicCurveTo(random.nextInt(width), random.nextInt(height), random.nextInt(width), random.nextInt(height), startX+(xSize*(currentPiece+1)), startY+(ySize*(currentPiece+1)));
 	        path.getElements().add(cubicCurveTo);
 	    }
+	}
+	
+	private void setStatusText()
+	{
+	    status.setText(correct+"/"+(required+wrongPoolVector.size())+" Level="+limit+"\nPoints = "+totalPoints);
+	    status.setLayoutX(scene.widthProperty().intValue()-(status.getBoundsInParent().getWidth()+20));
+	    progressBar.setProgress((double)correct/(double)(required+wrongPoolVector.size()));
 	}
 	
 	/**
