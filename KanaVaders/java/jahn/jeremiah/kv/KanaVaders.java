@@ -6,24 +6,29 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Random;
 import java.util.Vector;
+import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
+
 
 import javafx.animation.Animation.Status;
 import javafx.animation.PathTransition;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.event.EventHandler;
-import javafx.event.EventType;
 import javafx.geometry.Orientation;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.MoveTo;
@@ -33,6 +38,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
+
 
 import javax.imageio.ImageIO;
 
@@ -101,7 +107,7 @@ public class KanaVaders extends Application
         {
             this.stage = stage;
             stage.setFullScreenExitKeyCombination(new KeyCodeCombination(KeyCode.ESCAPE));
-            //stage.setFullScreen(true);
+            
             
             Rectangle rectangle = new Rectangle(0, 0, (int)Screen.getPrimary().getBounds().getWidth(), (int)Screen.getPrimary().getBounds().getHeight());
             Robot robot = new Robot();
@@ -116,11 +122,22 @@ public class KanaVaders extends Application
             root.addEventHandler(KeyEvent.KEY_TYPED, gameKeyEventHandler);
             scene = new Scene(root, 500, 500, Color.WHEAT);
             preferences = Preferences.userNodeForPackage(KanaVaders.class);
+            
             level = preferences.getInt("level", level);
             if(level <= 0) level = 1;
             required = preferences.getInt("required", required);
             lastImageDir = preferences.get("lastImageDir", lastImageDir);
-           
+            
+            crazyMode = preferences.getBoolean("arcadeMode", false);
+            safe = preferences.getBoolean("safeMode", false);
+            if(lastImageDir != null && safe == false)
+            {
+            	safetyFile = new File(lastImageDir);
+            	if(safetyFile.exists() == false)
+            	{
+            		safetyFile = null;
+            	}
+            }
             //textField.set
             do
             {
@@ -131,10 +148,35 @@ public class KanaVaders extends Application
             text.setScaleX(3);
             text.setScaleY(3);
 
+            HBox toggleBox = new HBox();
+            toggleBox.setSpacing(3);
             
             
+            
+            
+            ToggleButton fullScreenToggleButton = new ToggleButton("FullScreen");
+            fullScreenToggleButton.selectedProperty().addListener(e -> {            	
+            	stage.setFullScreen(!stage.isFullScreen());
+                preferences.putBoolean("fullScreen", stage.isFullScreen());
+                try{ preferences.flush();} catch (Exception e1) {}            	
+            });
+            fullScreenToggleButton.setScaleX(.75d);
+            fullScreenToggleButton.setScaleY(.75d);
+            fullScreenToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            
+            
+            arcadeToggleButton = new ToggleButton(crazyMode ? "Arcade" : "Simple");
+            arcadeToggleButton.setSelected(crazyMode);
+            arcadeToggleButton.selectedProperty().addListener(e -> {            	            	
+            	setArcadeMode(arcadeToggleButton.isSelected());
+            });
+            arcadeToggleButton.setScaleX(.75d);
+            arcadeToggleButton.setScaleY(.75d);
+            arcadeToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            
+            //Level Display stuff
             charList = new Text("");
-            setCharList(charList);
+            
             charList.setLayoutX(475);
             charList.setLayoutY(20);
 
@@ -164,7 +206,53 @@ public class KanaVaders extends Application
                         textField.requestFocus();
                     }
             });
-               
+            
+            writingSystemToggleButton = new ToggleButton(writingSystem.toString());
+            writingSystemToggleButton.setSelected(crazyMode);
+            writingSystemToggleButton.selectedProperty().addListener(e -> {            	
+            	 if(writingSystem == WritingSystem.HIRAGANA)
+                 {
+                     writingSystem = WritingSystem.KATAKANA;
+                 }
+                 else
+                 {
+                     writingSystem = WritingSystem.HIRAGANA;
+                 }            	 
+                 setCharList(charList);            	
+            });
+            writingSystemToggleButton.setScaleX(.75d);
+            writingSystemToggleButton.setScaleY(.75d);
+            writingSystemToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            setCharList(charList); 
+           
+            ToggleButton stealthModeToggleButton = new ToggleButton("Stealth");
+            stealthModeToggleButton.setSelected(safe);
+            stealthModeToggleButton.selectedProperty().addListener(e -> {            	
+            	setSafeMode(stealthModeToggleButton.isSelected());            	
+            });
+            stealthModeToggleButton.setScaleX(.75d);
+            stealthModeToggleButton.setScaleY(.75d);
+            stealthModeToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            
+            
+            Button imgBrowseButton = new Button("Img...");            
+            imgBrowseButton.pressedProperty().addListener(e -> {            	
+            	safetyFile = null;
+            	setSafeMode(false);
+            });
+            imgBrowseButton.setScaleX(.75d);
+            imgBrowseButton.setScaleY(.75d);
+            imgBrowseButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            
+            
+            Button exitButton = new Button("EXIT");
+            exitButton.pressedProperty().addListener(e -> {            	
+            	Platform.exit();
+            });
+            exitButton.setScaleX(.75d);
+            exitButton.setScaleY(.75d);
+            exitButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            
             
             //status stuff
             status = new Text();            
@@ -215,11 +303,12 @@ public class KanaVaders extends Application
 
             
             textField = new TextField();
-            textField.setLayoutY(450);
+            textField.setLayoutY(470);
+            textField.setLayoutX(10);
             status.setLayoutY(450);
             status.setLayoutX(315);
             progressBar.setLayoutX(315);
-            progressBar.setLayoutY(480);
+            progressBar.setLayoutY(470);
             textField.setOnKeyTyped(gameKeyEventHandler);
             //END KEYBOARD STUFF
             
@@ -231,13 +320,20 @@ public class KanaVaders extends Application
             root.getChildren().add(levelSlider);
             root.getChildren().add(status);
             root.getChildren().add(progressBar);
+            root.getChildren().add(toggleBox);
+            toggleBox.getChildren().add(exitButton);
+            toggleBox.getChildren().add(fullScreenToggleButton);
+            toggleBox.getChildren().add(arcadeToggleButton);
+            toggleBox.getChildren().add(writingSystemToggleButton);
+            toggleBox.getChildren().add(stealthModeToggleButton);
+            toggleBox.getChildren().add(imgBrowseButton);
 
             
             //RESIZE EVENT PROCESSING
             //height
             scene.heightProperty().addListener((c,n1,n2) -> {
                 pathTransition.setDuration(Duration.millis(n2.intValue()*10+10000));
-                textField.setLayoutY(n2.intValue()-50);
+                textField.setLayoutY(n2.intValue()-30);
                 status.setLayoutY(n2.intValue()-50);
                 levelSlider.setMinHeight(n2.intValue()-50);
                 progressBar.setLayoutY(n2.intValue()-30);
@@ -262,7 +358,7 @@ public class KanaVaders extends Application
             //INITIAL STARTUP STUFF
             stage.setTitle("Kana-Vaders");
             stage.setScene(scene);
-            
+            stage.setFullScreen(preferences.getBoolean("fullScreen", false));
             if(stage.isFullScreen())
             {
                 buildPath((int)Screen.getPrimary().getBounds().getWidth(), (int)Screen.getPrimary().getBounds().getHeight());
@@ -281,7 +377,23 @@ public class KanaVaders extends Application
             e2.printStackTrace();
         }   
     }
-    /**
+    private void setArcadeMode(boolean arcadeMode)
+	{
+    	this.crazyMode = arcadeMode;
+    	if(crazyMode == false)
+        {
+            root.getChildren().removeAll(bombImageViewVector);
+            bombImageViewVector.clear();
+            bombImageView = null;
+        }
+    	preferences.put("arcadeMode", crazyMode+"");
+    	try
+		{
+			preferences.flush();
+		} catch (BackingStoreException e){}
+    	arcadeToggleButton.setText(crazyMode ? "Arcade" : "Simple");
+	}
+	/**
      * 
      */
     private void success() throws Exception
@@ -371,8 +483,24 @@ public class KanaVaders extends Application
     		buffer.append(Character.toString((char)(writingSystem.unicodeBase+index)));
     	}
 		charList.setText(buffer.toString());
+		writingSystemToggleButton.setText(writingSystem.toString());
 		
 	}
+    
+    private void setSafeMode(boolean safeMode)
+    {
+        this.safe = safeMode;
+        preferences.putBoolean("safeMode", safeMode);
+        try{ preferences.flush();} catch (Exception e1) {}
+        pathTransition.pause();
+        try{
+        	Image imgTmp = new Image(getImageFile());
+        	imgView.setImage(imgTmp); 
+        } catch (Exception e1) {}
+               
+        pathTransition.play();
+    }
+    
 	private String getImageFile() throws Exception
 	{
 		
@@ -393,6 +521,7 @@ public class KanaVaders extends Application
 		    
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle("Choose Image/Image Directory");
+            
             if(lastImageDir != null)
             {
                 
@@ -411,6 +540,10 @@ public class KanaVaders extends Application
             if(safetyFile == null)
             {
                 return KanaVaders.class.getResource("safe.jpg").toString();
+            }
+            if(safetyFile.isDirectory() == false)
+            {
+            	return safetyFile.toURI().toURL().toString();
             }
         }
         File file = safetyFile.getParentFile();
@@ -515,18 +648,16 @@ public class KanaVaders extends Application
                 }
                 else if(e.getCharacter().equals("1")) //full screen 
                 {
-                   stage.setFullScreen(true);
+                   stage.setFullScreen(!stage.isFullScreen());
+                   preferences.putBoolean("fullScreen", stage.isFullScreen());
+                   try{ preferences.flush();} catch (Exception e1) {}
                    e.consume();
                 }                    
                 else if(e.getCharacter().equals("3")) //arcade mode
                 {
                     crazyMode = !crazyMode;
-                    if(crazyMode == false)
-                    {
-                        root.getChildren().removeAll(bombImageViewVector);
-                        bombImageViewVector.clear();
-                        bombImageView = null;
-                    }
+                    setArcadeMode(crazyMode);
+                    
                     e.consume();
                 }
                 else if(e.getCharacter().equals("-")) //decrease required
@@ -585,12 +716,9 @@ public class KanaVaders extends Application
                 
                 else if(e.getCharacter().equals("`")) //toggle safe mode
                 {
-                    safe = safe ? false : true;             
-                    pathTransition.pause();
-                    Image imgTmp = new Image(getImageFile());
-                    imgView.setImage(imgTmp);
+                	safe = safe ? false : true;
+                	setSafeMode(safe);
                     e.consume();
-                    pathTransition.play();
                 }
                 else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
                 {
@@ -618,5 +746,7 @@ public class KanaVaders extends Application
         }
     };
     private Group root;
+	private ToggleButton writingSystemToggleButton;
+	private ToggleButton arcadeToggleButton;
     
 }
