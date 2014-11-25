@@ -428,7 +428,12 @@ public class KanaVaders extends Application
             {
                 pos = random.nextInt(level+wrongPoolVector.size());
             }
-            if(pos >= level || (correct > required && wrongPoolVector.size() > 0))
+            if(pos >= level) // looks like we want a number that's in our wrong pool
+            {
+                pos = wrongPoolVector.get(pos-level);
+            }
+            //clean out the wrong pool, to finish the level
+            else if(correct > required && wrongPoolVector.size() > 0)
             {
                 pos = wrongPoolVector.remove(0);
             }
@@ -591,7 +596,7 @@ public class KanaVaders extends Application
 	
 	private void setStatusText()
 	{
-	    status.setText(correct+"/"+(required+wrongPoolVector.size())+" Level="+level+"\nPoints = "+totalPoints);
+	    status.setText(correct+"/"+required+"+"+wrongPoolVector.size()+" Level="+level+"\nPoints = "+totalPoints);
 	    status.setLayoutX(scene.widthProperty().intValue()-(status.getBoundsInParent().getWidth()+20));
 	    progressBar.setProgress((double)correct/(double)(required+wrongPoolVector.size()));
 	}
@@ -723,6 +728,10 @@ public class KanaVaders extends Application
                 else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
                 {
                     success();
+                    e.consume();
+                }
+                else if (textField.getText().endsWith(e.getCharacter())) //ignore double type
+                {
                     e.consume();
                 }
                 else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
