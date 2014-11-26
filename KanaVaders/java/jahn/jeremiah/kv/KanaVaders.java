@@ -158,6 +158,7 @@ public class KanaVaders extends Application
             fullScreenToggleButton.selectedProperty().addListener(e -> {            	
             	stage.setFullScreen(!stage.isFullScreen());
                 preferences.putBoolean("fullScreen", stage.isFullScreen());
+                textField.requestFocus();
                 try{ preferences.flush();} catch (Exception e1) {}            	
             });
             fullScreenToggleButton.setScaleX(.75d);
@@ -368,7 +369,8 @@ public class KanaVaders extends Application
                 buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
             }
             pathTransition.setPath(path);
-            pathTransition.play();        
+            pathTransition.play();
+            textField.requestFocus();
             stage.show();
         }
         catch (Exception e2)
@@ -392,6 +394,7 @@ public class KanaVaders extends Application
 			preferences.flush();
 		} catch (BackingStoreException e){}
     	arcadeToggleButton.setText(crazyMode ? "Arcade" : "Simple");
+    	textField.requestFocus();
 	}
 	/**
      * 
@@ -508,6 +511,7 @@ public class KanaVaders extends Application
         } catch (Exception e1) {}
                
         pathTransition.play();
+        textField.requestFocus();
     }
     
 	private String getImageFile() throws Exception
