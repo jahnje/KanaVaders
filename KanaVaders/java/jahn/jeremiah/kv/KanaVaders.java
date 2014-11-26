@@ -412,6 +412,10 @@ public class KanaVaders extends Application
             Image imgTmp = new Image(getImageFile());
             imgView.setImage(imgTmp);
             setCharList(charList);
+            if(required > 100)
+            {
+            	required = 100;
+            }
             preferences.putInt("level", level);
             preferences.putInt("required", required);
             try{ preferences.flush();} catch (Exception e1) {}
