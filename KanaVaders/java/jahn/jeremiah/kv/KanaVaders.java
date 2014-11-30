@@ -128,7 +128,7 @@ public class KanaVaders extends Application
             if(level <= 0) level = 1;
             required = preferences.getInt("required", required);
             lastImageDir = preferences.get("lastImageDir", lastImageDir);
-            
+            selectedWritingSystem = WritingSystem.valueOf(preferences.get("selectedWritingSystem", selectedWritingSystem.toString()));
             crazyMode = preferences.getBoolean("arcadeMode", false);
             safe = preferences.getBoolean("safeMode", false);
             if(lastImageDir != null && safe == false)
@@ -144,7 +144,7 @@ public class KanaVaders extends Application
             text.setScaleX(3);
             text.setScaleY(3);
             
-            setChar();
+            
             
 
             HBox toggleBox = new HBox();
@@ -180,6 +180,8 @@ public class KanaVaders extends Application
             charList.setLayoutX(475);
             charList.setLayoutY(20);
 
+            
+            
             levelSlider = new Slider();
             levelSlider.setRotate(180);
             levelSlider.setMin(1);
@@ -225,11 +227,14 @@ public class KanaVaders extends Application
                 	 selectedWritingSystem = WritingSystem.HIRAGANA;
                 	 writingSystem = WritingSystem.KATAKANA;
                  }            	 
-                 setCharList(charList);            	
+                 setCharList(charList);                 
+                 preferences.put("selectedWritingSystem", selectedWritingSystem+"");
+             	try{preferences.flush();} catch (BackingStoreException backingStoreException){}//ignore exception
             });
             writingSystemToggleButton.setScaleX(.75d);
             writingSystemToggleButton.setScaleY(.75d);
             writingSystemToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            setChar();
             setCharList(charList); 
            
             ToggleButton stealthModeToggleButton = new ToggleButton("Stealth");
