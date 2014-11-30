@@ -9,7 +9,6 @@ import java.util.Vector;
 import java.util.prefs.BackingStoreException;
 import java.util.prefs.Preferences;
 
-
 import javafx.animation.Animation.Status;
 import javafx.animation.PathTransition;
 import javafx.application.Application;
@@ -39,7 +38,6 @@ import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
-
 import javax.imageio.ImageIO;
 
 /*
@@ -56,6 +54,7 @@ public class KanaVaders extends Application
     {//       4e00 - 9faf
         HIRAGANA(83,12353),
         KATAKANA(89,12449),
+        KANA(89,12449),
         KANJI(20911,19968);
         
         int limit = 0;
@@ -73,6 +72,7 @@ public class KanaVaders extends Application
     private static final String[] romanji = new String[]{"A","","I","","U","","E","","O","","KA","GA","KI","GI","KU","GU","KE","GE","KO","GO","SA","ZA","SHI","JI","SU","ZU","SE","ZE","SO","ZO","TA","DA","CHI","DI","TSU","","DZU","TE","DE","TO","DO","NA","NI","NU","NE","NO","HA","BA","PA","HI","BI","PI","FU","BU","PU","HE","BE","PE","HO","BO","PO","MA","MI","MU","ME","MO","YA","YA","YU","YU","YO","YO","RA","RI","RU","RE","RO","WA","WA","WI","WE","WO","N","VU","KA","KE","VA","VI","VE","VO"};
     private static final int PIECES = 5;
     private WritingSystem writingSystem = WritingSystem.HIRAGANA;
+    private WritingSystem selectedWritingSystem = WritingSystem.HIRAGANA;
     private Text text;
     private int pos = 0;
     private int level = 1;
@@ -101,6 +101,7 @@ public class KanaVaders extends Application
     private TextField textField;
     private PathTransition pathTransition;
     private Slider levelSlider;
+    
     @Override
     public void start(Stage stage) {
         try
@@ -138,15 +139,13 @@ public class KanaVaders extends Application
             		safetyFile = null;
             	}
             }
-            //textField.set
-            do
-            {
-                pos = random.nextInt(level);
-            } while(romanji[pos].length() == 0);
             
-            text = new Text(Character.toString((char)(writingSystem.unicodeBase+pos)));
+            text = new Text();
             text.setScaleX(3);
             text.setScaleY(3);
+            
+            setChar();
+            
 
             HBox toggleBox = new HBox();
             toggleBox.setSpacing(3);
@@ -208,16 +207,23 @@ public class KanaVaders extends Application
                     }
             });
             
-            writingSystemToggleButton = new ToggleButton(writingSystem.toString());
+            writingSystemToggleButton = new ToggleButton(selectedWritingSystem.toString());
             writingSystemToggleButton.setSelected(crazyMode);
             writingSystemToggleButton.selectedProperty().addListener(e -> {            	
-            	 if(writingSystem == WritingSystem.HIRAGANA)
-                 {
-                     writingSystem = WritingSystem.KATAKANA;
+            	 if(selectedWritingSystem == WritingSystem.HIRAGANA)
+                 {                     
+            		 writingSystem = WritingSystem.KATAKANA;
+                     selectedWritingSystem = writingSystem;                     
                  }
+            	 else if (selectedWritingSystem == WritingSystem.KATAKANA)
+            	 {
+            		 selectedWritingSystem = WritingSystem.KANA;
+            		 writingSystem = WritingSystem.KATAKANA;
+            	 }
                  else
                  {
-                     writingSystem = WritingSystem.HIRAGANA;
+                	 selectedWritingSystem = WritingSystem.HIRAGANA;
+                	 writingSystem = WritingSystem.KATAKANA;
                  }            	 
                  setCharList(charList);            	
             });
@@ -379,7 +385,46 @@ public class KanaVaders extends Application
             e2.printStackTrace();
         }   
     }
-    private void setArcadeMode(boolean arcadeMode)
+    private void setChar()
+	{
+//    	//textField.set
+//        do
+//        {
+//            pos = random.nextInt(level);
+//        } while(romanji[pos].length() == 0);
+//        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));
+		
+        do
+        {
+        	if(selectedWritingSystem == WritingSystem.KANA)
+            {
+            	writingSystem = WritingSystem.values()[random.nextInt(WritingSystem.KANA.ordinal())];
+            	setCharList(charList);
+            }
+        	
+            if(correct == -1) //when uping the level, always use our new letter.
+            {
+                pos = level-1;
+                correct = 0;
+            }
+            else
+            {
+                pos = random.nextInt(level+wrongPoolVector.size());
+            }
+            if(pos >= level) // looks like we want a number that's in our wrong pool
+            {
+                pos = wrongPoolVector.get(pos-level);
+            }
+            //clean out the wrong pool, to finish the level
+            else if(correct > required && wrongPoolVector.size() > 0)
+            {
+                pos = wrongPoolVector.remove(0);
+            }
+        } while(romanji[pos].length() == 0);
+        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));        
+        
+	}
+	private void setArcadeMode(boolean arcadeMode)
 	{
     	this.crazyMode = arcadeMode;
     	if(crazyMode == false)
@@ -407,11 +452,7 @@ public class KanaVaders extends Application
         if (level < romanji.length && correct >= required && wrongPoolVector.size() == 0)
         {
             correct = -1;
-            level++;
-            if(level > writingSystem.limit)
-            {
-                level--;
-            }
+            increaseLevel();
             Image imgTmp = new Image(getImageFile());
             imgView.setImage(imgTmp);
             setCharList(charList);
@@ -424,29 +465,8 @@ public class KanaVaders extends Application
             try{ preferences.flush();} catch (Exception e1) {}
 
         }
-        do
-        {
-            if(correct == -1) //when uping the level, always use our new letter.
-            {
-                pos = level-1;
-                correct = 0;
-            }
-            else
-            {
-                pos = random.nextInt(level+wrongPoolVector.size());
-            }
-            if(pos >= level) // looks like we want a number that's in our wrong pool
-            {
-                pos = wrongPoolVector.get(pos-level);
-            }
-            //clean out the wrong pool, to finish the level
-            else if(correct > required && wrongPoolVector.size() > 0)
-            {
-                pos = wrongPoolVector.remove(0);
-            }
-        } while(romanji[pos].length() == 0);
-
-        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));
+       
+        setChar();
         textField.clear();        
         pathTransition.playFromStart();
         setStatusText();
@@ -495,7 +515,8 @@ public class KanaVaders extends Application
     		buffer.append(Character.toString((char)(writingSystem.unicodeBase+index)));
     	}
 		charList.setText(buffer.toString());
-		writingSystemToggleButton.setText(writingSystem.toString());
+		
+		writingSystemToggleButton.setText(selectedWritingSystem.toString());
 		
 	}
     
