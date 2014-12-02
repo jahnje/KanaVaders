@@ -185,7 +185,7 @@ public class KanaVaders extends Application
             levelSlider = new Slider();
             levelSlider.setRotate(180);
             levelSlider.setMin(1);
-            levelSlider.setMax(writingSystem.limit);
+            levelSlider.setMax(selectedWritingSystem.limit);
             levelSlider.setValue(level);
             levelSlider.setLayoutX(490);
             levelSlider.setLayoutY(20);
@@ -225,9 +225,10 @@ public class KanaVaders extends Application
                  else
                  {
                 	 selectedWritingSystem = WritingSystem.HIRAGANA;
-                	 writingSystem = WritingSystem.KATAKANA;
+                	 writingSystem = selectedWritingSystem;
                  }            	 
-                 setCharList(charList);                 
+                 setCharList(charList);
+                 levelSlider.setMax(selectedWritingSystem.limit);
                  preferences.put("selectedWritingSystem", selectedWritingSystem+"");
              	try{preferences.flush();} catch (BackingStoreException backingStoreException){}//ignore exception
             });
@@ -495,7 +496,7 @@ public class KanaVaders extends Application
     private void increaseLevel()
     {
         level++;
-        if(level > writingSystem.limit)
+        if(level > selectedWritingSystem.limit)
         {
             level--;
         }
