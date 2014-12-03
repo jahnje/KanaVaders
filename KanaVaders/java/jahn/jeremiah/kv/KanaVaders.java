@@ -129,6 +129,7 @@ public class KanaVaders extends Application
             {
                 Element freqNode = (Element) freqNodeList.item(currentNode);
                 freqMap.put(freqNode.getTextContent(), (Element) freqNode.getParentNode().getParentNode());
+                System.out.println(freqNode.getTextContent());
             }
             
             
@@ -248,6 +249,11 @@ public class KanaVaders extends Application
             		 selectedWritingSystem = WritingSystem.KANA;
             		 writingSystem = WritingSystem.KATAKANA;
             	 }
+            	 else if (selectedWritingSystem == WritingSystem.KANA)
+                 {
+                     selectedWritingSystem = WritingSystem.KANJI;
+                     writingSystem = WritingSystem.KANJI;
+                 }
                  else
                  {
                 	 selectedWritingSystem = WritingSystem.HIRAGANA;
@@ -453,82 +459,25 @@ public class KanaVaders extends Application
                 pos = wrongPoolVector.remove(0);
             }
         } while(romanji[pos].length() == 0);
-        try
+        
+        if(selectedWritingSystem == WritingSystem.KANJI)
         {
-           // Element element = (Element) xpathFactory.newXPath().evaluate("/kanjidic2/character/misc/freq", dictionary, XPathConstants.NODESET); 
-            Element character = freqMap.get(pos+"");
-            String kanji = (String) xpathFactory.newXPath().evaluate("./literal/text()",character , XPathConstants.STRING);
-            System.out.println("Kanji = "+kanji+" freq = "+pos);
-            NodeList meaningNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/meaning", character, XPathConstants.NODESET);
-            String[] meanings = new String[meaningNodeList.getLength()];
-            for(int index = 0; index < meanings.length; index++)
+            try
             {
-                meanings[index] = meaningNodeList.item(index).getTextContent();
+                kanji = new Kanji(freqMap.get(pos+""));
+                text.setText(kanji.kanji);
             }
-            System.out.println("Meanings = "+Arrays.toString(meanings));
+            catch (Exception e)
+            {
+                
+                e.printStackTrace();
+            }
             
-            NodeList onYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_on']", character, XPathConstants.NODESET);
-            String[] onYomis = new String[onYomiNodeList.getLength()];
-            String[] onYomisRoumaji = new String[onYomiNodeList.getLength()];
-            for(int index = 0; index < onYomis.length; index++)
-            {
-                onYomis[index] = onYomiNodeList.item(index).getTextContent();
-                StringBuffer buffer = new StringBuffer();
-                for(int currentChar = 0; currentChar < onYomis[index].length(); currentChar++)
-                {
-                    int codePoint = onYomis[index].codePointAt(currentChar);
-                    if(codePoint >= WritingSystem.KATAKANA.unicodeBase)
-                    {
-                        buffer.append(romanji[codePoint - WritingSystem.KATAKANA.unicodeBase]);
-                    }
-                    else if (codePoint >= WritingSystem.HIRAGANA.unicodeBase)
-                    {
-                        buffer.append(romanji[codePoint - WritingSystem.HIRAGANA.unicodeBase]);
-                    }
-                    else
-                    {
-                        buffer.append(onYomis[index].charAt(currentChar));
-                    }
-                }
-                onYomisRoumaji[index] = buffer.toString();
-            }
-            System.out.println("on'Yomi = "+Arrays.toString(onYomis));
-            System.out.println("on'Romi = "+Arrays.toString(onYomisRoumaji));
-            
-            NodeList kunYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_kun']", character, XPathConstants.NODESET);
-            String[] kunYomis = new String[kunYomiNodeList.getLength()];
-            String[] kunYomisRoumaji = new String[kunYomiNodeList.getLength()];
-            for(int index = 0; index < kunYomis.length; index++)
-            {
-                kunYomis[index] = kunYomiNodeList.item(index).getTextContent();
-                StringBuffer buffer = new StringBuffer();
-                for(int currentChar = 0; currentChar < kunYomis[index].length(); currentChar++)
-                {
-                    int codePoint = kunYomis[index].codePointAt(currentChar);
-                    if(codePoint >= WritingSystem.KATAKANA.unicodeBase)
-                    {
-                        buffer.append(romanji[codePoint - WritingSystem.KATAKANA.unicodeBase]);
-                    }
-                    else if (codePoint >= WritingSystem.HIRAGANA.unicodeBase)
-                    {
-                        buffer.append(romanji[codePoint - WritingSystem.HIRAGANA.unicodeBase]);
-                    }
-                    else
-                    {
-                        buffer.append(kunYomis[index].charAt(currentChar));
-                    }
-                }
-                kunYomisRoumaji[index] = buffer.toString();
-            }
-            System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
-            System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumaji));
         }
-        catch (XPathExpressionException e)
+        else
         {
-            
-            e.printStackTrace();
+            text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));
         }
-        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));        
         
 	}
 	private void setArcadeMode(boolean arcadeMode)
@@ -614,12 +563,21 @@ public class KanaVaders extends Application
     	StringBuffer buffer = new StringBuffer();
     	for(int index = 0; index < level; index++)
     	{
-    		if(romanji[index].length() == 0)
-    		{
-    			continue;
-    		}
-    		buffer.append("\n");
-    		buffer.append(Character.toString((char)(writingSystem.unicodeBase+index)));
+    	    if(selectedWritingSystem != WritingSystem.KANJI)
+    	    {
+    	        if(romanji[index].length() == 0)
+    	        {
+    	            continue;
+    	        }
+    	        buffer.append("\n");
+                buffer.append(Character.toString((char)(writingSystem.unicodeBase+index)));
+    	    }
+    	    else
+    	    {
+    	        buffer.append("\n");
+                buffer.append(Character.toString((char)(writingSystem.unicodeBase+index)));
+    	    }
+    		
     	}
 		charList.setText(buffer.toString());
 		
@@ -863,6 +821,7 @@ public class KanaVaders extends Application
                 }
                 else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
                 {
+                    //TODO ADD KANJI MEANING and ROUMAJI TEST 
                     success();
                     e.consume();
                 }
@@ -872,10 +831,12 @@ public class KanaVaders extends Application
                 }
                 else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
                 {
+                  //TODO ADD KANJI MEANING and ROUMAJI TEST 
                     //do nothing
                 }
                 else //fail
-                {                
+                {
+                    //ADD KANJI Reading than meaning update
                     text.setText(Character.toString((char)(writingSystem.unicodeBase+pos))+" ("+romanji[pos]+")");
                     e.consume();
                     //correct--;
@@ -894,5 +855,90 @@ public class KanaVaders extends Application
 	private ToggleButton writingSystemToggleButton;
 	private ToggleButton arcadeToggleButton;
     private HashMap<String, Element> freqMap;
+    private Kanji kanji;
+    
+    private class Kanji
+    {
+        String kanji = null;
+        private String[] onYomis;
+        private String[] onYomisRoumajis;
+        private String[] kunYomis;
+        private String[] kunYomisRoumajis;
+    
+        /**
+         * 
+         */
+        public Kanji(Element character) throws Exception
+        {
+         // Element element = (Element) xpathFactory.newXPath().evaluate("/kanjidic2/character/misc/freq", dictionary, XPathConstants.NODESET); 
+            
+            kanji = (String) xpathFactory.newXPath().evaluate("./literal/text()",character , XPathConstants.STRING);
+            System.out.println("Kanji = "+kanji+" freq = "+pos);
+            NodeList meaningNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/meaning", character, XPathConstants.NODESET);
+            String[] meanings = new String[meaningNodeList.getLength()];
+            for(int index = 0; index < meanings.length; index++)
+            {
+                meanings[index] = meaningNodeList.item(index).getTextContent();
+            }
+            System.out.println("Meanings = "+Arrays.toString(meanings));
+            
+            NodeList onYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_on']", character, XPathConstants.NODESET);
+            onYomis = new String[onYomiNodeList.getLength()];
+            onYomisRoumajis = new String[onYomiNodeList.getLength()];
+            for(int index = 0; index < onYomis.length; index++)
+            {
+                onYomis[index] = onYomiNodeList.item(index).getTextContent();
+                StringBuffer buffer = new StringBuffer();
+                for(int currentChar = 0; currentChar < onYomis[index].length(); currentChar++)
+                {
+                    int codePoint = onYomis[index].codePointAt(currentChar);
+                    if(codePoint >= WritingSystem.KATAKANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.KATAKANA.unicodeBase]);
+                    }
+                    else if (codePoint >= WritingSystem.HIRAGANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.HIRAGANA.unicodeBase]);
+                    }
+                    else
+                    {
+                        buffer.append(onYomis[index].charAt(currentChar));
+                    }
+                }
+                onYomisRoumajis[index] = buffer.toString();
+            }
+            System.out.println("on'Yomi = "+Arrays.toString(onYomis));
+            System.out.println("on'Romi = "+Arrays.toString(onYomisRoumajis));
+            
+            NodeList kunYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_kun']", character, XPathConstants.NODESET);
+            kunYomis = new String[kunYomiNodeList.getLength()];
+            kunYomisRoumajis = new String[kunYomiNodeList.getLength()];
+            for(int index = 0; index < kunYomis.length; index++)
+            {
+                kunYomis[index] = kunYomiNodeList.item(index).getTextContent();
+                StringBuffer buffer = new StringBuffer();
+                for(int currentChar = 0; currentChar < kunYomis[index].length(); currentChar++)
+                {
+                    int codePoint = kunYomis[index].codePointAt(currentChar);
+                    if(codePoint >= WritingSystem.KATAKANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.KATAKANA.unicodeBase]);
+                    }
+                    else if (codePoint >= WritingSystem.HIRAGANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.HIRAGANA.unicodeBase]);
+                    }
+                    else
+                    {
+                        buffer.append(kunYomis[index].charAt(currentChar));
+                    }
+                }
+                kunYomisRoumajis[index] = buffer.toString();
+            }
+            System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
+            System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumajis));
+        
+        }
+    }
     
 }
