@@ -4,6 +4,8 @@ import java.awt.Rectangle;
 import java.awt.Robot;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Random;
 import java.util.Vector;
 import java.util.prefs.BackingStoreException;
@@ -39,6 +41,14 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import javax.imageio.ImageIO;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
 
 /*
  * Created on Nov 17, 2014
@@ -69,7 +79,7 @@ public class KanaVaders extends Application
         }
     }
    
-    private static final String[] romanji = new String[]{"A","","I","","U","","E","","O","","KA","GA","KI","GI","KU","GU","KE","GE","KO","GO","SA","ZA","SHI","JI","SU","ZU","SE","ZE","SO","ZO","TA","DA","CHI","DI","TSU","","DZU","TE","DE","TO","DO","NA","NI","NU","NE","NO","HA","BA","PA","HI","BI","PI","FU","BU","PU","HE","BE","PE","HO","BO","PO","MA","MI","MU","ME","MO","YA","YA","YU","YU","YO","YO","RA","RI","RU","RE","RO","WA","WA","WI","WE","WO","N","VU","KA","KE","VA","VI","VE","VO"};
+    private static final String[] romanji = new String[]{"A","A","I","I","U","U","E","E","O","O","KA","GA","KI","GI","KU","GU","KE","GE","KO","GO","SA","ZA","SHI","JI","SU","ZU","SE","ZE","SO","ZO","TA","DA","CHI","DI","TSU","TSU","DZU","TE","DE","TO","DO","NA","NI","NU","NE","NO","HA","BA","PA","HI","BI","PI","FU","BU","PU","HE","BE","PE","HO","BO","PO","MA","MI","MU","ME","MO","YA","YA","YU","YU","YO","YO","RA","RI","RU","RE","RO","WA","WA","WI","WE","WO","N","VU","KA","KE","VA","VI","VE","VO"};
     private static final int PIECES = 5;
     private WritingSystem writingSystem = WritingSystem.HIRAGANA;
     private WritingSystem selectedWritingSystem = WritingSystem.HIRAGANA;
@@ -102,10 +112,26 @@ public class KanaVaders extends Application
     private PathTransition pathTransition;
     private Slider levelSlider;
     
+    private Document dictionary = null;
+    private XPathFactory xpathFactory = null;
+    
+    
     @Override
     public void start(Stage stage) {
         try
         {
+            
+            freqMap = new HashMap<String, Element>();
+            dictionary = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(KanaVaders.class.getResource("kanjidic_simplified.xml").toString());
+            xpathFactory = XPathFactory.newInstance();
+            NodeList freqNodeList = (NodeList) xpathFactory.newXPath().evaluate("//freq", dictionary, XPathConstants.NODESET);
+            for(int currentNode = 0; currentNode < freqNodeList.getLength(); currentNode++)
+            {
+                Element freqNode = (Element) freqNodeList.item(currentNode);
+                freqMap.put(freqNode.getTextContent(), (Element) freqNode.getParentNode().getParentNode());
+            }
+            
+            
             this.stage = stage;
             stage.setFullScreenExitKeyCombination(new KeyCodeCombination(KeyCode.ESCAPE));
             
@@ -427,6 +453,81 @@ public class KanaVaders extends Application
                 pos = wrongPoolVector.remove(0);
             }
         } while(romanji[pos].length() == 0);
+        try
+        {
+           // Element element = (Element) xpathFactory.newXPath().evaluate("/kanjidic2/character/misc/freq", dictionary, XPathConstants.NODESET); 
+            Element character = freqMap.get(pos+"");
+            String kanji = (String) xpathFactory.newXPath().evaluate("./literal/text()",character , XPathConstants.STRING);
+            System.out.println("Kanji = "+kanji+" freq = "+pos);
+            NodeList meaningNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/meaning", character, XPathConstants.NODESET);
+            String[] meanings = new String[meaningNodeList.getLength()];
+            for(int index = 0; index < meanings.length; index++)
+            {
+                meanings[index] = meaningNodeList.item(index).getTextContent();
+            }
+            System.out.println("Meanings = "+Arrays.toString(meanings));
+            
+            NodeList onYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_on']", character, XPathConstants.NODESET);
+            String[] onYomis = new String[onYomiNodeList.getLength()];
+            String[] onYomisRoumaji = new String[onYomiNodeList.getLength()];
+            for(int index = 0; index < onYomis.length; index++)
+            {
+                onYomis[index] = onYomiNodeList.item(index).getTextContent();
+                StringBuffer buffer = new StringBuffer();
+                for(int currentChar = 0; currentChar < onYomis[index].length(); currentChar++)
+                {
+                    int codePoint = onYomis[index].codePointAt(currentChar);
+                    if(codePoint >= WritingSystem.KATAKANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.KATAKANA.unicodeBase]);
+                    }
+                    else if (codePoint >= WritingSystem.HIRAGANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.HIRAGANA.unicodeBase]);
+                    }
+                    else
+                    {
+                        buffer.append(onYomis[index].charAt(currentChar));
+                    }
+                }
+                onYomisRoumaji[index] = buffer.toString();
+            }
+            System.out.println("on'Yomi = "+Arrays.toString(onYomis));
+            System.out.println("on'Romi = "+Arrays.toString(onYomisRoumaji));
+            
+            NodeList kunYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_kun']", character, XPathConstants.NODESET);
+            String[] kunYomis = new String[kunYomiNodeList.getLength()];
+            String[] kunYomisRoumaji = new String[kunYomiNodeList.getLength()];
+            for(int index = 0; index < kunYomis.length; index++)
+            {
+                kunYomis[index] = kunYomiNodeList.item(index).getTextContent();
+                StringBuffer buffer = new StringBuffer();
+                for(int currentChar = 0; currentChar < kunYomis[index].length(); currentChar++)
+                {
+                    int codePoint = kunYomis[index].codePointAt(currentChar);
+                    if(codePoint >= WritingSystem.KATAKANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.KATAKANA.unicodeBase]);
+                    }
+                    else if (codePoint >= WritingSystem.HIRAGANA.unicodeBase)
+                    {
+                        buffer.append(romanji[codePoint - WritingSystem.HIRAGANA.unicodeBase]);
+                    }
+                    else
+                    {
+                        buffer.append(kunYomis[index].charAt(currentChar));
+                    }
+                }
+                kunYomisRoumaji[index] = buffer.toString();
+            }
+            System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
+            System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumaji));
+        }
+        catch (XPathExpressionException e)
+        {
+            
+            e.printStackTrace();
+        }
         text.setText(Character.toString((char)(writingSystem.unicodeBase+pos)));        
         
 	}
@@ -792,5 +893,6 @@ public class KanaVaders extends Application
     private Group root;
 	private ToggleButton writingSystemToggleButton;
 	private ToggleButton arcadeToggleButton;
+    private HashMap<String, Element> freqMap;
     
 }
