@@ -78,6 +78,13 @@ public class KanaVaders extends Application
             this.unicodeBase = unicodeBase;
         }
     }
+    
+    private enum KanjiTest
+    {
+        onyomi,
+        kunyomi,
+        meaning;
+    }
    
     private static final String[] romanji = new String[]{"A","A","I","I","U","U","E","E","O","O","KA","GA","KI","GI","KU","GU","KE","GE","KO","GO","SA","ZA","SHI","JI","SU","ZU","SE","ZE","SO","ZO","TA","DA","CHI","DI","TSU","TSU","DZU","TE","DE","TO","DO","NA","NI","NU","NE","NO","HA","BA","PA","HI","BI","PI","FU","BU","PU","HE","BE","PE","HO","BO","PO","MA","MI","MU","ME","MO","YA","YA","YU","YU","YO","YO","RA","RI","RU","RE","RO","WA","WA","WI","WE","WO","N","VU","KA","KE","VA","VI","VE","VO"};
     private static final int PIECES = 5;
@@ -111,7 +118,12 @@ public class KanaVaders extends Application
     private TextField textField;
     private PathTransition pathTransition;
     private Slider levelSlider;
-    
+    private Group root;
+    private ToggleButton writingSystemToggleButton;
+    private ToggleButton arcadeToggleButton;
+    private HashMap<String, Element> freqMap;
+    private Kanji kanji = null;
+    private KanjiTest kanjiTest = KanjiTest.onyomi;
     private Document dictionary = null;
     private XPathFactory xpathFactory = null;
     
@@ -501,28 +513,46 @@ public class KanaVaders extends Application
      * 
      */
     private void success() throws Exception
-    {
+    {        
+        boolean actualSuccess = true;
         buildPath(scene.widthProperty().intValue(), scene.heightProperty().intValue());
-        correct++;
-        totalPoints++;
-        if (level < romanji.length && correct >= required && wrongPoolVector.size() == 0)
+        if(selectedWritingSystem == WritingSystem.KANJI)
         {
-            correct = -1;
-            increaseLevel();
-            Image imgTmp = new Image(getImageFile());
-            imgView.setImage(imgTmp);
-            setCharList(charList);
-            if(required > 100)
+            if(kanjiTest.ordinal() == KanjiTest.values().length-1)
             {
-            	required = 100;
+                kanjiTest = KanjiTest.values()[0];
             }
-            preferences.putInt("level", level);
-            preferences.putInt("required", required);
-            try{ preferences.flush();} catch (Exception e1) {}
-
+            else
+            {
+                kanjiTest = KanjiTest.values()[kanjiTest.ordinal()+1];
+                text.setText(kanji.kanji);
+                actualSuccess = false;
+            }
+            
         }
-       
-        setChar();
+        if(actualSuccess)
+        {
+            correct++;
+            totalPoints++;
+            if (level < romanji.length && correct >= required && wrongPoolVector.size() == 0)
+            {
+                correct = -1;
+                increaseLevel();
+                Image imgTmp = new Image(getImageFile());
+                imgView.setImage(imgTmp);
+                setCharList(charList);
+                if(required > 100)
+                {
+                    required = 100;
+                }
+                preferences.putInt("level", level);
+                preferences.putInt("required", required);
+                try{ preferences.flush();} catch (Exception e1) {}
+
+            }
+        
+            setChar();
+        }
         textField.clear();        
         pathTransition.playFromStart();
         setStatusText();
@@ -690,8 +720,16 @@ public class KanaVaders extends Application
 	
 	private void setStatusText()
 	{
-	    status.setText(correct+"/"+required+"+"+wrongPoolVector.size()+" Level="+level+"\nPoints = "+totalPoints);
-	    status.setLayoutX(scene.widthProperty().intValue()-(status.getBoundsInParent().getWidth()+20));
+	    if(selectedWritingSystem == WritingSystem.KANJI)
+	    {
+	        status.setText(kanjiTest.toString()+"? "+correct+"/"+required+"+"+wrongPoolVector.size()+" Level="+level+"\nPoints = "+totalPoints);
+	        status.setLayoutX(scene.widthProperty().intValue()-(status.getBoundsInParent().getWidth()+30));
+	    }
+	    else
+	    {
+	        status.setText(correct+"/"+required+"+"+wrongPoolVector.size()+" Level="+level+"\nPoints = "+totalPoints);
+	        status.setLayoutX(scene.widthProperty().intValue()-(status.getBoundsInParent().getWidth()+20));
+	    }
 	    progressBar.setProgress((double)correct/(double)(required+wrongPoolVector.size()));
 	}
 	
@@ -795,11 +833,7 @@ public class KanaVaders extends Application
                     e.consume();
 
                 }
-                else if(e.getCharacter().equals("."))
-                {
-                    increaseLevel();
-                    e.consume();
-                }
+                
                 else if(e.getCharacter().equals("P")) //pause
                 {
                     if(pathTransition.getStatus() == Status.PAUSED)
@@ -819,25 +853,62 @@ public class KanaVaders extends Application
                 	setSafeMode(safe);
                     e.consume();
                 }
-                else if((textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
+                else if(selectedWritingSystem != WritingSystem.KANJI && (textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
                 {
-                    //TODO ADD KANJI MEANING and ROUMAJI TEST 
+                    
                     success();
                     e.consume();
                 }
-                else if (textField.getText().endsWith(e.getCharacter())) //ignore double type
+                else if(selectedWritingSystem == WritingSystem.KANJI && (isKanjiTestCorrect(textField.getText()+e.getCharacter()))) //correct romanji/ success
+                {
+                    //KANJI MEANING and ROUMAJI TEST 
+                    success();
+                    e.consume();
+                }
+                else if (selectedWritingSystem != WritingSystem.KANJI && textField.getText().endsWith(e.getCharacter())) //ignore double type
                 {
                     e.consume();
                 }
-                else if (romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
+                else if (selectedWritingSystem != WritingSystem.KANJI && romanji[pos].startsWith((textField.getText()+e.getCharacter()).toUpperCase()))
                 {
-                  //TODO ADD KANJI MEANING and ROUMAJI TEST 
+                   
                     //do nothing
+                }
+                else if (selectedWritingSystem == WritingSystem.KANJI && doesKanjiStartWith((textField.getText()+e.getCharacter())))
+                {
+                  //KANJI MEANING and ROUMAJI STARTS WITH TEST 
+                    //do nothing
+                }
+                else if(e.getCharacter().equals("."))
+                {
+                    increaseLevel();
+                    e.consume();
                 }
                 else //fail
                 {
                     //ADD KANJI Reading than meaning update
-                    text.setText(Character.toString((char)(writingSystem.unicodeBase+pos))+" ("+romanji[pos]+")");
+                    if(selectedWritingSystem != WritingSystem.KANJI)
+                    {
+                        text.setText(Character.toString((char)(writingSystem.unicodeBase+pos))+" ("+romanji[pos]+")");
+                    }
+                    else
+                    {
+                        switch (kanjiTest)
+                        {
+                            case onyomi:
+                                text.setText(kanji.kanji+" ("+Arrays.toString(kanji.onYomis)+")");
+                                break;
+                            case kunyomi:
+                                text.setText(kanji.kanji+" ("+Arrays.toString(kanji.kunYomis)+")");
+                                break;
+                            case meaning:
+                                text.setText(kanji.kanji+" ("+Arrays.toString(kanji.meanings)+")");
+                                break;
+                            default:
+                                
+                        }
+                       
+                    }
                     e.consume();
                     //correct--;
                     totalPoints--;
@@ -850,21 +921,101 @@ public class KanaVaders extends Application
                 exception.printStackTrace();
             }
         }
+
+        /**
+         * @param string
+         * @return
+         */
+        private boolean doesKanjiStartWith(String currentInput)
+        {
+            currentInput = currentInput.toLowerCase();
+            switch (kanjiTest)
+            {
+                case onyomi:
+                    for (String onYomiRoumaji : kanji.onYomisRoumajis)
+                    {
+                        if(onYomiRoumaji.toLowerCase().startsWith(currentInput))
+                        {
+                            return true;
+                        }
+                    }
+                    break;
+                case kunyomi:
+                    for (String kunYomiRoumaji : kanji.kunYomisRoumajis)
+                    {
+                        if(kunYomiRoumaji.toLowerCase().startsWith(currentInput))
+                        {
+                            return true;
+                        }
+                    }
+                    break;
+                case meaning:
+                    for (String meaning : kanji.meanings)
+                    {
+                        if(meaning.toLowerCase().startsWith(currentInput))
+                        {
+                            return true;
+                        }
+                    }
+                    break;
+                default:
+                    return false;
+            }
+            return false;
+        }
+
+        /**
+         * @param string
+         * @return
+         */
+        private boolean isKanjiTestCorrect(String currentInput)
+        {
+            switch (kanjiTest)
+            {
+                case onyomi:
+                    for (String onYomiRoumaji : kanji.onYomisRoumajis)
+                    {
+                        if(onYomiRoumaji.equalsIgnoreCase(currentInput))
+                        {
+                            return true;
+                        }
+                    }
+                    break;
+                case kunyomi:
+                    for (String kunYomiRoumaji : kanji.kunYomisRoumajis)
+                    {
+                        if(kunYomiRoumaji.equalsIgnoreCase(currentInput))
+                        {
+                            return true;
+                        }
+                    }
+                    break;
+                case meaning:
+                    for (String meaning : kanji.meanings)
+                    {
+                        if(meaning.equalsIgnoreCase(currentInput))
+                        {
+                            return true;
+                        }
+                    }
+                    break;
+                default:
+                    return false;
+            }
+            return false;
+        }
     };
-    private Group root;
-	private ToggleButton writingSystemToggleButton;
-	private ToggleButton arcadeToggleButton;
-    private HashMap<String, Element> freqMap;
-    private Kanji kanji;
+   
     
     private class Kanji
     {
+        
         String kanji = null;
         private String[] onYomis;
         private String[] onYomisRoumajis;
         private String[] kunYomis;
         private String[] kunYomisRoumajis;
-    
+        private String[] meanings;
         /**
          * 
          */
@@ -875,7 +1026,7 @@ public class KanaVaders extends Application
             kanji = (String) xpathFactory.newXPath().evaluate("./literal/text()",character , XPathConstants.STRING);
             System.out.println("Kanji = "+kanji+" freq = "+pos);
             NodeList meaningNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/meaning", character, XPathConstants.NODESET);
-            String[] meanings = new String[meaningNodeList.getLength()];
+            meanings = new String[meaningNodeList.getLength()];
             for(int index = 0; index < meanings.length; index++)
             {
                 meanings[index] = meaningNodeList.item(index).getTextContent();
