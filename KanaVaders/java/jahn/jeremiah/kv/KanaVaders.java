@@ -43,7 +43,6 @@ import javafx.util.Duration;
 import javax.imageio.ImageIO;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpressionException;
 import javax.xml.xpath.XPathFactory;
 
 import org.w3c.dom.Document;
@@ -65,7 +64,8 @@ public class KanaVaders extends Application
         HIRAGANA(83,12353),
         KATAKANA(89,12449),
         KANA(89,12449),
-        KANJI(20911,19968);
+        KANJI(2499,19968);
+        //KANJI(20911,19968);
         
         int limit = 0;
         int unicodeBase = 0;
@@ -140,7 +140,7 @@ public class KanaVaders extends Application
             for(int currentNode = 0; currentNode < freqNodeList.getLength(); currentNode++)
             {
                 Element freqNode = (Element) freqNodeList.item(currentNode);
-                freqMap.put(freqNode.getTextContent(), (Element) freqNode.getParentNode().getParentNode());
+                freqMap.put((Integer.parseInt(freqNode.getTextContent())-1)+"", (Element) freqNode.getParentNode().getParentNode());
                 //System.out.println(freqNode.getTextContent());
             }
             
@@ -270,7 +270,20 @@ public class KanaVaders extends Application
                  {
                 	 selectedWritingSystem = WritingSystem.HIRAGANA;
                 	 writingSystem = selectedWritingSystem;
-                 }            	 
+                 }
+            	 if(level >= selectedWritingSystem.limit)
+                 {
+                     level = selectedWritingSystem.limit-1;
+                 }
+            	 try
+                {
+                    setChar();
+                }
+                catch (Exception e1)
+                {
+                    
+                    e1.printStackTrace();
+                }
                  setCharList(charList);
                  levelSlider.setMax(selectedWritingSystem.limit);
                  preferences.put("selectedWritingSystem", selectedWritingSystem+"");
@@ -437,6 +450,7 @@ public class KanaVaders extends Application
     }
     private void setChar()
 	{
+        text.setFill(Color.BLACK);
 //    	//textField.set
 //        do
 //        {
@@ -470,6 +484,10 @@ public class KanaVaders extends Application
             {
                 pos = wrongPoolVector.remove(0);
             }
+            if(selectedWritingSystem == WritingSystem.KANJI)
+            {
+                break;
+            }
         } while(romanji[pos].length() == 0);
         
         if(selectedWritingSystem == WritingSystem.KANJI)
@@ -478,6 +496,18 @@ public class KanaVaders extends Application
             {
                 kanji = new Kanji(freqMap.get(pos+""));
                 text.setText(kanji.kanji);
+                switch (kanjiTest)
+                {
+                    case kunyomi:
+                        text.setFill(Color.DARKBLUE);
+                        break;
+                    case onyomi:
+                        text.setFill(Color.DARKGREEN);
+                        break;
+                    default:
+                        text.setFill(Color.BLACK);
+                        break;
+                }
             }
             catch (Exception e)
             {
@@ -526,6 +556,18 @@ public class KanaVaders extends Application
             {
                 kanjiTest = KanjiTest.values()[kanjiTest.ordinal()+1];
                 text.setText(kanji.kanji);
+                switch (kanjiTest)
+                {
+                    case kunyomi:
+                        text.setFill(Color.DARKBLUE);
+                        break;
+                    case onyomi:
+                        text.setFill(Color.DARKGREEN);
+                        break;
+                    default:
+                        text.setFill(Color.BLACK);
+                        break;
+                }
                 actualSuccess = false;
             }
             
@@ -590,7 +632,7 @@ public class KanaVaders extends Application
     }
     private void setCharList(Text charList)
 	{
-    	StringBuffer buffer = new StringBuffer();
+    	StringBuffer buffer = new StringBuffer();    	
     	for(int index = 0; index < level; index++)
     	{
     	    if(selectedWritingSystem != WritingSystem.KANJI)
@@ -605,7 +647,15 @@ public class KanaVaders extends Application
     	    else
     	    {
     	        buffer.append("\n");
-                buffer.append(Character.toString((char)(writingSystem.unicodeBase+index)));
+                try
+                {                    
+                    buffer.append(freqMap.get(index+"").getElementsByTagName("literal").item(0).getTextContent());
+                }
+                catch (Exception e)
+                {
+                    
+                    e.printStackTrace();
+                }
     	    }
     		
     	}
@@ -796,14 +846,7 @@ public class KanaVaders extends Application
                     setArcadeMode(crazyMode);
                     
                     e.consume();
-                }
-                else if(e.getCharacter().equals("-")) //decrease required
-                {
-                    required--;
-                    setStatusText();                        
-                    setCharList(charList);
-                    e.consume();
-                }
+                }                
                 else if(e.getCharacter().equals("=")) //increase required
                 {
                     required++;
@@ -879,9 +922,16 @@ public class KanaVaders extends Application
                   //KANJI MEANING and ROUMAJI STARTS WITH TEST 
                     //do nothing
                 }
-                else if(e.getCharacter().equals("."))
+                else if(e.getCharacter().equals(".")) //must be careful, because this can be used in Kanji tests
                 {
                     increaseLevel();
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("-")) //decrease required
+                { //must be careful, because this can be used in Kanji tests
+                    required--;
+                    setStatusText();                        
+                    setCharList(charList);
                     e.consume();
                 }
                 else //fail
@@ -896,13 +946,13 @@ public class KanaVaders extends Application
                         switch (kanjiTest)
                         {
                             case onyomi:
-                                text.setText(kanji.kanji+" ("+Arrays.toString(kanji.onYomis)+")");
+                                text.setText(kanji.kanji+"   "+Arrays.toString(kanji.onYomis).replaceAll("[\\[\\]]", "")+"  ");
                                 break;
                             case kunyomi:
-                                text.setText(kanji.kanji+" ("+Arrays.toString(kanji.kunYomis)+")");
+                                text.setText(kanji.kanji+"   "+Arrays.toString(kanji.kunYomis).replaceAll("[\\[\\]]", "")+"  ");
                                 break;
                             case meaning:
-                                text.setText(kanji.kanji+" ("+Arrays.toString(kanji.meanings)+")");
+                                text.setText(kanji.kanji+"   "+Arrays.toString(kanji.meanings).replaceAll("[\\[\\]]", "")+"  ");
                                 break;
                             default:
                                 
@@ -1024,14 +1074,14 @@ public class KanaVaders extends Application
          // Element element = (Element) xpathFactory.newXPath().evaluate("/kanjidic2/character/misc/freq", dictionary, XPathConstants.NODESET); 
             
             kanji = (String) xpathFactory.newXPath().evaluate("./literal/text()",character , XPathConstants.STRING);
-            System.out.println("Kanji = "+kanji+" freq = "+pos);
+            //System.out.println("Kanji = "+kanji+" freq = "+pos);
             NodeList meaningNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/meaning", character, XPathConstants.NODESET);
             meanings = new String[meaningNodeList.getLength()];
             for(int index = 0; index < meanings.length; index++)
             {
                 meanings[index] = meaningNodeList.item(index).getTextContent();
             }
-            System.out.println("Meanings = "+Arrays.toString(meanings));
+           // System.out.println("Meanings = "+Arrays.toString(meanings));
             
             NodeList onYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_on']", character, XPathConstants.NODESET);
             onYomis = new String[onYomiNodeList.getLength()];
@@ -1058,8 +1108,8 @@ public class KanaVaders extends Application
                 }
                 onYomisRoumajis[index] = buffer.toString();
             }
-            System.out.println("on'Yomi = "+Arrays.toString(onYomis));
-            System.out.println("on'Romi = "+Arrays.toString(onYomisRoumajis));
+            //System.out.println("on'Yomi = "+Arrays.toString(onYomis));
+           // System.out.println("on'Romi = "+Arrays.toString(onYomisRoumajis));
             
             NodeList kunYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_kun']", character, XPathConstants.NODESET);
             kunYomis = new String[kunYomiNodeList.getLength()];
@@ -1086,8 +1136,8 @@ public class KanaVaders extends Application
                 }
                 kunYomisRoumajis[index] = buffer.toString();
             }
-            System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
-            System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumajis));
+           // System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
+           // System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumajis));
         
         }
     }
