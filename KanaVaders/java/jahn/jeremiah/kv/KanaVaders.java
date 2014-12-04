@@ -141,7 +141,7 @@ public class KanaVaders extends Application
             {
                 Element freqNode = (Element) freqNodeList.item(currentNode);
                 freqMap.put(freqNode.getTextContent(), (Element) freqNode.getParentNode().getParentNode());
-                System.out.println(freqNode.getTextContent());
+                //System.out.println(freqNode.getTextContent());
             }
             
             
