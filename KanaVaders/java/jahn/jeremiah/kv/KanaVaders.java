@@ -35,6 +35,7 @@ import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
 import javafx.scene.text.Text;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
@@ -698,7 +699,7 @@ public class KanaVaders extends Application
 		while(safetyFile == null)
         {
 		    
-            FileChooser fileChooser = new FileChooser();
+            DirectoryChooser fileChooser = new DirectoryChooser();
             fileChooser.setTitle("Choose Image/Image Directory");
             
             if(lastImageDir != null)
@@ -708,17 +709,23 @@ public class KanaVaders extends Application
                 if (lastImageDirFile.isDirectory())
                 {
                     fileChooser.setInitialDirectory(lastImageDirFile);
+                    //fileChooser.setInitialFileName(null);
                 }
                 else
                 {
                     fileChooser.setInitialDirectory(lastImageDirFile.getParentFile());
-                    fileChooser.setInitialFileName(lastImageDir);
+                    //fileChooser.setInitialFileName("");
+                    //fileChooser.setInitialFileName(lastImageDir);
                 }
             }
-            safetyFile = fileChooser.showOpenDialog(stage);
+            
+            safetyFile = fileChooser.showDialog(stage);    
+            
+            
             if(safetyFile == null)
             {
-                return KanaVaders.class.getResource("safe.jpg").toString();
+                continue;
+                //return KanaVaders.class.getResource("safe.jpg").toString();
             }
             if(safetyFile.isDirectory() == false)
             {
@@ -729,6 +736,7 @@ public class KanaVaders extends Application
         if(safetyFile.isDirectory())
         {
             file = safetyFile;
+            lastImageDir = safetyFile.getAbsolutePath();
         }        
         preferences.put("lastImageDir", safetyFile.getAbsolutePath());
         try{ preferences.flush();} catch (Exception e1) {}
@@ -894,6 +902,12 @@ public class KanaVaders extends Application
                 {
                 	safe = safe ? false : true;
                 	setSafeMode(safe);
+                    e.consume();
+                }
+                else if(e.getCharacter().equals("~")) //toggle safe mode
+                {
+                    safetyFile = null;
+                    setSafeMode(false);
                     e.consume();
                 }
                 else if(selectedWritingSystem != WritingSystem.KANJI && (textField.getText()+e.getCharacter()).equalsIgnoreCase(romanji[pos])) //correct romanji/ success
@@ -1081,7 +1095,7 @@ public class KanaVaders extends Application
             {
                 meanings[index] = meaningNodeList.item(index).getTextContent();
             }
-           // System.out.println("Meanings = "+Arrays.toString(meanings));
+           System.out.println("Meanings = "+Arrays.toString(meanings));
             
             NodeList onYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_on']", character, XPathConstants.NODESET);
             onYomis = new String[onYomiNodeList.getLength()];
@@ -1108,8 +1122,8 @@ public class KanaVaders extends Application
                 }
                 onYomisRoumajis[index] = buffer.toString();
             }
-            //System.out.println("on'Yomi = "+Arrays.toString(onYomis));
-           // System.out.println("on'Romi = "+Arrays.toString(onYomisRoumajis));
+            System.out.println("on'Yomi = "+Arrays.toString(onYomis));
+            System.out.println("on'Romi = "+Arrays.toString(onYomisRoumajis));
             
             NodeList kunYomiNodeList = (NodeList) xpathFactory.newXPath().evaluate("./reading_meaning/rmgroup/reading[@r_type = 'ja_kun']", character, XPathConstants.NODESET);
             kunYomis = new String[kunYomiNodeList.getLength()];
@@ -1136,8 +1150,8 @@ public class KanaVaders extends Application
                 }
                 kunYomisRoumajis[index] = buffer.toString();
             }
-           // System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
-           // System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumajis));
+            System.out.println("kun'Yomi = "+Arrays.toString(kunYomis));
+            System.out.println("kun'Romi = "+Arrays.toString(kunYomisRoumajis));
         
         }
     }
