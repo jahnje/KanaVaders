@@ -19,6 +19,7 @@ import javafx.event.EventHandler;
 import javafx.geometry.Orientation;
 import javafx.scene.Group;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Slider;
@@ -712,6 +713,7 @@ public class KanaVaders extends Application
                 if (lastImageDirFile.isDirectory())
                 {
                     fileChooser.setInitialDirectory(lastImageDirFile);
+                    
                     //fileChooser.setInitialFileName(null);
                 }
                 else
@@ -720,10 +722,21 @@ public class KanaVaders extends Application
                     //fileChooser.setInitialFileName("");
                     //fileChooser.setInitialFileName(lastImageDir);
                 }
+                safetyFile = lastImageDirFile;
             }
-            
-            safetyFile = fileChooser.showDialog(stage);    
-            
+            else
+            {
+                String savedLastImageDir = preferences.get("lastImageDir",null);
+                if(savedLastImageDir != null)
+                {
+                    File savedLastImageDirFile = new File(savedLastImageDir);
+                    if(savedLastImageDirFile.exists())
+                    {
+                        fileChooser.setInitialDirectory(savedLastImageDirFile);
+                    }
+                }
+                safetyFile = fileChooser.showDialog(stage);    
+            }
             
             if(safetyFile == null)
             {
@@ -887,7 +900,15 @@ public class KanaVaders extends Application
                     e.consume();
 
                 }
-                
+                else if(e.getCharacter().equals("?")) //decrease level
+                {
+                    
+                    pathTransition.pause();
+                    new Alert(Alert.AlertType.INFORMATION, "<space> - change image\nESC - toggle full screen\n1 - full screen\n2 - change writing system\n3 - arcade mode\n~ - choose image dir\n` - togglesafe mode\nP - pause\n= - increase required\n- - decrease required\n] - decrease speed\n[ - decrease speed\n. increase level\n, - decreese level").showAndWait();
+                    pathTransition.play();
+                    e.consume();
+
+                }
                 else if(e.getCharacter().equals("P")) //pause
                 {
                     if(pathTransition.getStatus() == Status.PAUSED)
@@ -909,6 +930,7 @@ public class KanaVaders extends Application
                 }
                 else if(e.getCharacter().equals("~")) //toggle safe mode
                 {
+                    lastImageDir = null;
                     safetyFile = null;
                     setSafeMode(false);
                     e.consume();
