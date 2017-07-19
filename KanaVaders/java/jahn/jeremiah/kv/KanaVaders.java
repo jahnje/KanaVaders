@@ -34,9 +34,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.CubicCurveTo;
 import javafx.scene.shape.MoveTo;
 import javafx.scene.shape.Path;
+import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.DirectoryChooser;
-import javafx.stage.FileChooser;
 import javafx.stage.Screen;
 import javafx.stage.Stage;
 import javafx.util.Duration;
@@ -203,7 +203,7 @@ public class KanaVaders extends Application
             fullScreenToggleButton.setScaleX(.75d);
             fullScreenToggleButton.setScaleY(.75d);
             fullScreenToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
-            
+            fullScreenToggleButton.setFont(Font.font("Arial"));
             
             arcadeToggleButton = new ToggleButton(crazyMode ? "Arcade" : "Simple");
             arcadeToggleButton.setSelected(crazyMode);
@@ -213,6 +213,7 @@ public class KanaVaders extends Application
             arcadeToggleButton.setScaleX(.75d);
             arcadeToggleButton.setScaleY(.75d);
             arcadeToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            arcadeToggleButton.setFont(Font.font("Arial"));
             
             //Level Display stuff
             charList = new Text("");
@@ -293,6 +294,7 @@ public class KanaVaders extends Application
             writingSystemToggleButton.setScaleX(.75d);
             writingSystemToggleButton.setScaleY(.75d);
             writingSystemToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
+            writingSystemToggleButton.setFont(Font.font("Arial"));
             setChar();
             setCharList(charList); 
            
@@ -304,7 +306,7 @@ public class KanaVaders extends Application
             stealthModeToggleButton.setScaleX(.75d);
             stealthModeToggleButton.setScaleY(.75d);
             stealthModeToggleButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
-            
+            stealthModeToggleButton.setFont(Font.font("Arial"));
             
             Button imgBrowseButton = new Button("Img...");            
             imgBrowseButton.pressedProperty().addListener(e -> {            	
@@ -314,7 +316,7 @@ public class KanaVaders extends Application
             imgBrowseButton.setScaleX(.75d);
             imgBrowseButton.setScaleY(.75d);
             imgBrowseButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
-            
+            imgBrowseButton.setFont(Font.font("Arial"));
             
             Button exitButton = new Button("EXIT");
             exitButton.pressedProperty().addListener(e -> {            	
@@ -323,7 +325,7 @@ public class KanaVaders extends Application
             exitButton.setScaleX(.75d);
             exitButton.setScaleY(.75d);
             exitButton.setStyle("-fx-background-color: rgba(255,255,255,0.5);");
-            
+            exitButton.setFont(Font.font("Arial"));
             
             //status stuff
             status = new Text();            
@@ -376,6 +378,7 @@ public class KanaVaders extends Application
             textField = new TextField();
             textField.setLayoutY(470);
             textField.setLayoutX(10);
+            textField.setFont(Font.font("Arial"));
             status.setLayoutY(450);
             status.setLayoutX(315);
             progressBar.setLayoutX(315);
